@@ -67,7 +67,8 @@ export function HeaderBar({ userName, viewDate, monthlyDataKeys, setViewDate, on
   };
 
   return (
-    <div className="relative mb-10 flex items-center justify-between">
+    // Added 'w-full max-w-[1050px]' to the className below to match card width
+    <div className="relative mb-10 flex w-full max-w-[1050px] items-center justify-between">
       <div>
         <h1 className="font-montserrat text-[28px] font-bold text-[#1E1E1E]">{getGreeting()}</h1>
         <p className="mt-1 font-montserrat text-[14px] font-normal text-[#6B7280]">{getContextText()}</p>
