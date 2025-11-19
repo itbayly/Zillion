@@ -1,0 +1,634 @@
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { doc, onSnapshot, setDoc, getDoc } from 'firebase/firestore';
+import { Loader2 } from 'lucide-react';
+
+// --- 1. Config & Utils ---
+import { auth, db } from './config/firebase';
+import { getDefaultBudgetData, getYearMonthKey, getNewMonthEntry, getTodayDate } from './utils/helpers';
+
+// --- 2. Auth & Wizard Views ---
+import LoginScreen from './views/auth/LoginScreen';
+import { WizardStep_Welcome, WizardStep_Join } from './views/wizard/WizardWelcome';
+import { 
+  WizardStep1a_AccountsInfo, 
+  WizardStep1b_MainSavingsAccount, 
+  WizardStep1c_DefaultAccount, 
+  WizardStep1d_SinkingFundAccount, 
+  WizardStep1e_AccountSummary 
+} from './views/wizard/WizardBankAccounts';
+import { 
+  WizardStep2_Income, 
+  WizardStep3_Savings, 
+  WizardStep6_DebtSetup 
+} from './views/wizard/WizardFinancials';
+import { 
+  WizardStep4_Categories, 
+  WizardStep_LinkDebts, 
+  WizardStep5_AssignBudgets, 
+  WizardStep7_Complete 
+} from './views/wizard/WizardCategorization';
+
+// --- 3. Dashboard Views ---
+import BudgetView from './views/dashboard/BudgetView';
+import ReportsDashboard from './views/dashboard/ReportsView';
+import DebtsView from './views/dashboard/DebtsView';
+import AccountsView from './views/dashboard/AccountsView';
+import SettingsView from './views/dashboard/SettingsView';
+
+// --- 4. Layout & Widgets ---
+import Sidebar from './components/layout/Sidebar';
+import { HeaderBar, HeroBar } from './components/layout/Headers';
+import { RecentActivityCard, UpcomingBillsCard } from './components/cards/Widgets';
+
+// --- 5. Modals ---
+import { JoinBudgetModal, ConfirmLeaveModal, ConfirmRemoveModal } from './components/modals/SharingModals';
+import { RebalanceBudgetModal } from './components/modals/BudgetAdjustmentModals';
+import AddTransactionModal from './components/modals/AddTransactionModal';
+import { AddIncomeModal, AddTransferModal, LumpSumPaymentModal } from './components/modals/TransferModals';
+import { TransactionDetailModal, AllTransactionsModal, AccountTransactionModal } from './components/modals/TransactionListModals';
+import { DebtDetailModal, EditDebtModal } from './components/modals/DebtModals';
+
+
+// ========================================================================
+// MAIN BUDGET APP LOGIC
+// ========================================================================
+function BudgetApp({ userId, onSignOut, joinBudgetId }) {
+  const appId = 'zillion-budget-app';
+
+  // --- Data State ---
+  const [effectiveBudgetId, setEffectiveBudgetId] = useState(userId);
+  const [userDoc, setUserDoc] = useState(null);
+  const [isUserDocLoaded, setIsUserDocLoaded] = useState(false);
+  const [budgetData, setBudgetData] = useState(getDefaultBudgetData());
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
+  const [viewDate, setViewDate] = useState(getYearMonthKey());
+  const [activeTab, setActiveTab] = useState('budget');
+
+  // --- Modal States ---
+  const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
+  const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false);
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+  const [isAllTransactionsModalOpen, setIsAllTransactionsModalOpen] = useState(false);
+  const [isTransactionDetailModalOpen, setIsTransactionDetailModalOpen] = useState(false);
+  const [transactionModalFilter, setTransactionModalFilter] = useState(null);
+  const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
+  const [accountModalFilter, setAccountModalFilter] = useState(null);
+  
+  const [isDebtDetailModalOpen, setIsDebtDetailModalOpen] = useState(false);
+  const [selectedDebt, setSelectedDebt] = useState(null);
+  const [editingDebt, setEditingDebt] = useState(null);
+  const [isLumpSumModalOpen, setIsLumpSumModalOpen] = useState(false);
+  const [lumpSumDebtId, setLumpSumDebtId] = useState(null);
+
+  const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
+  const [joinModalMessage, setJoinModalMessage] = useState({ type: '', text: '' });
+  const [pendingJoinId, setPendingJoinId] = useState(null);
+  const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
+  const [isRemoveModalOpen, setIsRemoveModalOpen] = useState(false);
+  const [sharingMessage, setSharingMessage] = useState({ type: '', text: '' });
+  const [isRebalanceModalOpen, setIsRebalanceModalOpen] = useState(false);
+  const [rebalanceData, setRebalanceData] = useState(null);
+
+  // --- Refs ---
+  const budgetDataRef = useRef(budgetData);
+  budgetDataRef.current = budgetData;
+  const userDocRef = useRef(userDoc);
+  userDocRef.current = userDoc;
+  const userDocUnsubscribeRef = useRef(null);
+  const budgetDocUnsubscribeRef = useRef(null);
+
+  // --- Effects ---
+  
+  // 1. URL Join Handler
+  useEffect(() => {
+    if (joinBudgetId && isUserDocLoaded && !userDocRef.current?.linkedBudgetId) {
+      setPendingJoinId(joinBudgetId);
+      setIsJoinModalOpen(true);
+    }
+  }, [joinBudgetId, isUserDocLoaded]);
+
+  // 2. User Doc Listener
+  useEffect(() => {
+    if (db && userId) {
+      if (userDocUnsubscribeRef.current) userDocUnsubscribeRef.current();
+      const docPath = `/artifacts/${appId}/users/${userId}/budget/main`;
+      const uDocRef = doc(db, docPath);
+
+      const unsubscribe = onSnapshot(uDocRef, (snap) => {
+        let data;
+        if (snap.exists()) {
+          data = snap.data();
+        } else {
+          data = getDefaultBudgetData();
+          if (auth.currentUser?.displayName) data.userName = auth.currentUser.displayName;
+          setDoc(uDocRef, data).catch(console.error);
+        }
+        setUserDoc(data);
+        setIsUserDocLoaded(true);
+        setEffectiveBudgetId(data.linkedBudgetId || userId);
+      });
+      userDocUnsubscribeRef.current = unsubscribe;
+      return () => unsubscribe();
+    }
+  }, [userId]);
+
+  // 3. Budget Doc Listener
+  useEffect(() => {
+    if (db && effectiveBudgetId) {
+      if (budgetDocUnsubscribeRef.current) budgetDocUnsubscribeRef.current();
+      setIsDataLoaded(false);
+      const docPath = `/artifacts/${appId}/users/${effectiveBudgetId}/budget/main`;
+      const bDocRef = doc(db, docPath);
+
+      const unsubscribe = onSnapshot(bDocRef, (snap) => {
+        if (snap.exists()) {
+          const data = snap.data();
+          if (JSON.stringify(data) !== JSON.stringify(budgetDataRef.current)) {
+             const processedData = runDailyCompoundingCatchUp(data);
+             setBudgetData(processedData);
+          }
+        } else {
+          const newDefaultData = getDefaultBudgetData();
+          setDoc(bDocRef, newDefaultData).then(() => setBudgetData(newDefaultData)).catch(console.error);
+        }
+        setIsDataLoaded(true);
+      });
+      budgetDocUnsubscribeRef.current = unsubscribe;
+      return () => unsubscribe();
+    }
+  }, [effectiveBudgetId]);
+
+  // 4. Rollover Check
+  useEffect(() => {
+    const isSetupComplete = typeof budgetData.currentStep !== 'number' || budgetData.currentStep > 13;
+    if (isDataLoaded && isSetupComplete) {
+      const currentMonthKey = getYearMonthKey();
+      if (!budgetData.monthlyData[currentMonthKey]) {
+        handleCreateNewMonth(budgetDataRef.current, currentMonthKey);
+      }
+    }
+  }, [isDataLoaded, budgetData.currentStep, budgetData.monthlyData]);
+
+  // --- Core Logic Functions ---
+
+  const updateBudget = (newData) => {
+    const completeNewData = { ...budgetDataRef.current, ...newData };
+    setBudgetData(completeNewData);
+    budgetDataRef.current = completeNewData;
+    if (db && effectiveBudgetId) {
+      const docPath = `/artifacts/${appId}/users/${effectiveBudgetId}/budget/main`;
+      setDoc(doc(db, docPath), completeNewData, { merge: true }).catch(console.error);
+    }
+  };
+
+  const runDailyCompoundingCatchUp = (currentData) => {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    let didUpdate = false;
+    const newDebts = currentData.debts.map((debt) => {
+      if (debt.compoundingFrequency === 'Daily' && debt.lastCompoundedDate) {
+        const lastDate = new Date(debt.lastCompoundedDate); lastDate.setHours(0, 0, 0, 0);
+        const daysToCompound = Math.floor((today - lastDate) / (1000 * 60 * 60 * 24));
+        if (daysToCompound > 0) {
+          didUpdate = true;
+          const P = debt.amountOwed;
+          const r_daily = (debt.interestRate || 0) / 100 / 365;
+          const newPrincipal = P * Math.pow(1 + r_daily, daysToCompound);
+          return { ...debt, amountOwed: Math.round(newPrincipal * 100) / 100, lastCompoundedDate: today.toISOString() };
+        }
+      }
+      return debt;
+    });
+    if (didUpdate) {
+      updateBudget({ debts: newDebts });
+      return { ...currentData, debts: newDebts };
+    }
+    return currentData;
+  };
+
+  const handleCreateNewMonth = (currentData, targetMonthKey) => {
+    const { monthlyData } = currentData;
+    const allMonthKeys = Object.keys(monthlyData).sort((a, b) => a.localeCompare(b));
+    const latestMonthKey = allMonthKeys[allMonthKeys.length - 1];
+    const latestMonth = monthlyData[latestMonthKey];
+    if (!latestMonth) return;
+
+    const { transactions, categories, sinkingFundBalances } = latestMonth;
+    const spentBySubCategory = transactions.reduce((acc, tx) => {
+      if (tx.isIncome) return acc;
+      acc[tx.subCategoryId] = (acc[tx.subCategoryId] || 0) + (parseFloat(tx.amount) || 0);
+      return acc;
+    }, {});
+
+    const newSinkingFundBalances = { ...sinkingFundBalances };
+    categories.forEach((cat) => {
+      cat.subcategories.forEach((sub) => {
+        if (sub.type === 'sinking_fund') {
+          const spent = spentBySubCategory[sub.id] || 0;
+          const budgeted = sub.budgeted || 0;
+          const oldBalance = newSinkingFundBalances[sub.id] || 0;
+          newSinkingFundBalances[sub.id] = oldBalance + budgeted - spent;
+        }
+      });
+    });
+
+    const newMonthEntry = getNewMonthEntry(categories);
+    newMonthEntry.sinkingFundBalances = newSinkingFundBalances;
+    const newMonthlyData = { ...monthlyData, [targetMonthKey]: newMonthEntry };
+    updateBudget({ monthlyData: newMonthlyData });
+    setViewDate(targetMonthKey);
+  };
+
+  const handleSimulateRollover = () => {
+    const { monthlyData } = budgetDataRef.current;
+    const allMonthKeys = Object.keys(monthlyData).sort((a, b) => a.localeCompare(b));
+    const latestMonthKey = allMonthKeys[allMonthKeys.length - 1];
+    const [year, month] = latestMonthKey.split('-').map(Number);
+    const latestDate = new Date(year, month - 1, 15);
+    latestDate.setMonth(latestDate.getMonth() + 1);
+    const nextMonthKey = getYearMonthKey(latestDate);
+    
+    if (monthlyData[nextMonthKey]) { setViewDate(nextMonthKey); return; }
+    handleCreateNewMonth(budgetDataRef.current, nextMonthKey);
+  };
+
+  // --- Business Logic (Transaction Processing) ---
+  // We moved this logic here to keep BudgetView clean, as it affects global state
+  
+  const handleSaveTransaction = (newTransaction) => {
+    let newDebts = [...budgetData.debts];
+    let newBankAccounts = [...budgetData.bankAccounts];
+    const newMonthlyData = { ...budgetData.monthlyData };
+    const month = newMonthlyData[viewDate] || getNewMonthEntry(currentMonthData.categories);
+    let newTransactionsList = [...month.transactions];
+
+    const processPayment = (txAmount, subCategoryId, txDate) => {
+      const debt = newDebts.find((d) => {
+        for (const cat of currentMonthData.categories) {
+          const sub = cat.subcategories.find((s) => s.id === subCategoryId && s.linkedDebtId === d.id);
+          if (sub) return true;
+        }
+        return false;
+      });
+
+      if (debt && txAmount > 0) {
+        let interestPortion = 0;
+        let principalPortion = 0;
+
+        if (debt.compoundingFrequency === 'Monthly') {
+           // Simple fallback logic for now
+           const r = (debt.interestRate || 0) / 100 / 12;
+           const interestDue = (debt.amountOwed || 0) * r;
+           interestPortion = Math.min(txAmount, interestDue);
+           principalPortion = txAmount - interestPortion;
+        } else {
+           // Daily or Other
+           interestPortion = 0;
+           principalPortion = txAmount;
+        }
+        debt.amountOwed = debt.amountOwed - principalPortion;
+        return { principalPaid: principalPortion, interestPaid: interestPortion };
+      }
+      return { principalPaid: 0, interestPaid: 0 };
+    };
+
+    if (newTransaction.isSplit && newTransaction.splits) {
+       const deductionsByAccount = {};
+       newTransaction.splits.forEach(split => {
+         const amt = parseFloat(split.amount) || 0;
+         deductionsByAccount[split.accountId] = (deductionsByAccount[split.accountId] || 0) + amt;
+       });
+       newBankAccounts = newBankAccounts.map(acc => {
+         const deduction = deductionsByAccount[acc.id];
+         return deduction ? { ...acc, balance: (parseFloat(acc.balance) || 0) - deduction } : acc;
+       });
+
+       newTransaction.splits.forEach(split => {
+         if (split.amount > 0 && split.subCategoryId) {
+           const { principalPaid, interestPaid } = processPayment(split.amount, split.subCategoryId, newTransaction.date);
+           newTransactionsList.push({
+             id: crypto.randomUUID(),
+             amount: split.amount,
+             subCategoryId: split.subCategoryId,
+             date: newTransaction.date,
+             accountId: split.accountId,
+             merchant: newTransaction.merchant,
+             notes: [newTransaction.notes, split.notes].filter(Boolean).join(' | '),
+             isIncome: false,
+             splitGroupId: newTransaction.id,
+             principalPaid, interestPaid
+           });
+         }
+       });
+    } else {
+      let singleTx = { ...newTransaction, id: newTransaction.id || crypto.randomUUID() };
+      if (!singleTx.isIncome) {
+         const amt = parseFloat(singleTx.amount) || 0;
+         const { principalPaid, interestPaid } = processPayment(amt, singleTx.subCategoryId, singleTx.date);
+         singleTx.principalPaid = principalPaid;
+         singleTx.interestPaid = interestPaid;
+      }
+      newTransactionsList.push(singleTx);
+      newBankAccounts = newBankAccounts.map(acc => acc.id === newTransaction.accountId ? { ...acc, balance: (parseFloat(acc.balance)||0) - (parseFloat(newTransaction.amount)||0) } : acc);
+    }
+
+    newMonthlyData[viewDate] = { ...month, transactions: newTransactionsList };
+    updateBudget({ monthlyData: newMonthlyData, bankAccounts: newBankAccounts, debts: newDebts });
+    setIsTransactionModalOpen(false);
+  };
+
+  const handleSaveIncome = (newIncome) => {
+    const newBankAccounts = budgetData.bankAccounts.map(acc => acc.id === newIncome.accountId ? { ...acc, balance: (parseFloat(acc.balance)||0) + (parseFloat(newIncome.amount)||0) } : acc);
+    const newMonthlyData = { ...budgetData.monthlyData };
+    const month = newMonthlyData[viewDate] || getNewMonthEntry();
+    const newTransactions = [...month.transactions, { ...newIncome, id: crypto.randomUUID() }];
+    newMonthlyData[viewDate] = { ...month, transactions: newTransactions };
+    updateBudget({ monthlyData: newMonthlyData, bankAccounts: newBankAccounts });
+    setIsIncomeModalOpen(false);
+  };
+
+  const handleSaveTransfer = (transferData) => {
+    const { amount, date, fromId, toId } = transferData;
+    const newBankAccounts = budgetData.bankAccounts.map(acc => {
+      if (acc.id === fromId) return { ...acc, balance: (parseFloat(acc.balance)||0) - amount };
+      if (acc.id === toId) return { ...acc, balance: (parseFloat(acc.balance)||0) + amount };
+      return acc;
+    });
+    const fromName = budgetData.bankAccounts.find(a=>a.id===fromId)?.name || 'Unknown';
+    const toName = budgetData.bankAccounts.find(a=>a.id===toId)?.name || 'Unknown';
+    
+    const tx1 = { id: crypto.randomUUID(), amount, date, subCategoryId: null, accountId: fromId, merchant: `Transfer to ${toName}`, notes: `Transfer from ${fromName}`, isIncome: false };
+    const tx2 = { id: crypto.randomUUID(), amount, date, subCategoryId: null, accountId: toId, merchant: `Transfer from ${fromName}`, notes: `Transfer to ${toName}`, isIncome: true };
+
+    const newMonthlyData = { ...budgetData.monthlyData };
+    const month = newMonthlyData[viewDate] || getNewMonthEntry();
+    newMonthlyData[viewDate] = { ...month, transactions: [...month.transactions, tx1, tx2] };
+    updateBudget({ monthlyData: newMonthlyData, bankAccounts: newBankAccounts });
+    setIsTransferModalOpen(false);
+  };
+
+  // --- Handlers for Data Updates ---
+  const handleStepChange = (step) => updateBudget({ currentStep: step });
+  const handleBankAccountsChange = (newAccounts) => updateBudget({ bankAccounts: newAccounts });
+  const handleSetDefaultAccount = (accountId) => updateBudget({ defaultAccountId: accountId });
+  const handleSavingsAccountChange = (accountId) => updateBudget({ savingsAccountId: accountId || null });
+  const handleMainSavingsAccountChange = (accountId) => updateBudget({ mainSavingsAccountId: accountId || null });
+  const handleDebtsChange = (newDebts) => updateBudget({ debts: newDebts });
+  
+  const getWriteKey = () => {
+     const isSetup = budgetData.currentStep > 13;
+     return isSetup ? viewDate : Object.keys(budgetData.monthlyData)[0];
+  };
+
+  const handleIncomeChange = (source, value) => {
+    const monthKey = getWriteKey();
+    const newMonthlyData = JSON.parse(JSON.stringify(budgetDataRef.current.monthlyData));
+    const currentMonth = newMonthlyData[monthKey] || getNewMonthEntry();
+    if (!currentMonth.income) currentMonth.income = { source1: 0, source2: 0 };
+    currentMonth.income[source] = parseFloat(value) || 0;
+    newMonthlyData[monthKey] = currentMonth;
+    updateBudget({ monthlyData: newMonthlyData });
+  };
+
+  const handleSavingsChange = (value) => {
+    const monthKey = getWriteKey();
+    const newMonthlyData = JSON.parse(JSON.stringify(budgetDataRef.current.monthlyData));
+    const currentMonth = newMonthlyData[monthKey] || getNewMonthEntry();
+    currentMonth.savingsGoal = parseFloat(value) || 0;
+    newMonthlyData[monthKey] = currentMonth;
+    updateBudget({ monthlyData: newMonthlyData });
+  };
+
+  const handleCategoriesChange = (newCategories) => {
+    const monthKey = getWriteKey();
+    const newMonthlyData = { ...budgetData.monthlyData };
+    const currentMonth = newMonthlyData[monthKey] || getNewMonthEntry();
+    newMonthlyData[monthKey] = { ...currentMonth, categories: newCategories };
+    updateBudget({ monthlyData: newMonthlyData });
+  };
+
+  const handleSinkingFundBalancesChange = (newBalances) => {
+    const monthKey = getWriteKey();
+    const newMonthlyData = { ...budgetData.monthlyData };
+    const currentMonth = newMonthlyData[monthKey] || getNewMonthEntry();
+    newMonthlyData[monthKey] = { ...currentMonth, sinkingFundBalances: newBalances };
+    updateBudget({ monthlyData: newMonthlyData });
+  };
+
+  // --- Sharing Handlers ---
+  const handleJoinBudget = async (ownerId) => {
+    if (!ownerId || ownerId === userId) { setJoinModalMessage({ type: 'error', text: 'Cannot join own budget.' }); return; }
+    try {
+      const ownerDocRef = doc(db, `/artifacts/${appId}/users/${ownerId}/budget/main`);
+      const memberDocRef = doc(db, `/artifacts/${appId}/users/${userId}/budget/main`);
+      const snap = await getDoc(ownerDocRef);
+      if (!snap.exists()) throw new Error('Budget not found.');
+      const ownerData = snap.data();
+      if (ownerData.linkedBudgetId || ownerData.sharedWith) throw new Error('Budget not available.');
+      
+      await setDoc(ownerDocRef, { sharedWith: { userId, email: auth.currentUser.email, name: auth.currentUser.displayName, permissions: 'edit' } }, { merge: true });
+      await setDoc(memberDocRef, { linkedBudgetId: ownerId }, { merge: true });
+      setIsJoinModalOpen(false); setPendingJoinId(null);
+    } catch (error) { setJoinModalMessage({ type: 'error', text: error.message }); }
+  };
+
+  const handleLeaveBudget = async () => {
+    if (!userDoc?.linkedBudgetId) return;
+    const ownerId = userDoc.linkedBudgetId;
+    try {
+      await setDoc(doc(db, `/artifacts/${appId}/users/${ownerId}/budget/main`), { sharedWith: null }, { merge: true });
+      await setDoc(doc(db, `/artifacts/${appId}/users/${userId}/budget/main`), { linkedBudgetId: null }, { merge: true });
+      setIsLeaveModalOpen(false); setSharingMessage({ type: 'success', text: 'You left the budget.' });
+    } catch (e) { setSharingMessage({ type: 'error', text: 'Error leaving budget.' }); }
+  };
+
+  const handleRemovePartner = async () => {
+    if (!userDoc?.sharedWith) return;
+    const memberId = userDoc.sharedWith.userId;
+    try {
+      await setDoc(doc(db, `/artifacts/${appId}/users/${userId}/budget/main`), { sharedWith: null }, { merge: true });
+      await setDoc(doc(db, `/artifacts/${appId}/users/${memberId}/budget/main`), { linkedBudgetId: null }, { merge: true });
+      setIsRemoveModalOpen(false); setSharingMessage({ type: 'success', text: 'Partner removed.' });
+    } catch (e) { setSharingMessage({ type: 'error', text: 'Error removing partner.' }); }
+  };
+
+  // --- Rebalance Logic ---
+  const handleDebtUpdate = (newDebts) => {
+    const currentMonth = currentMonthData;
+    const totalBudgeted = (currentMonth.categories || []).reduce((catTotal, category) => {
+      const subTotal = category.subcategories.reduce((subAcc, sub) => {
+        if (sub.linkedDebtId) {
+          const debt = newDebts.find(d => d.id === sub.linkedDebtId);
+          if (debt) return subAcc + (debt.monthlyPayment || 0) + (debt.extraMonthlyPayment || 0);
+        }
+        return subAcc + (sub.budgeted || 0);
+      }, 0);
+      return catTotal + subTotal;
+    }, 0);
+
+    const totalIncome = (currentMonth.income.source1 || 0) + (currentMonth.income.source2 || 0);
+    const newRemaining = Math.round((totalIncome - (currentMonth.savingsGoal || 0) - totalBudgeted) * 100) / 100;
+
+    updateBudget({ debts: newDebts });
+
+    if (newRemaining !== 0) {
+      const spentMap = (currentMonth.transactions || []).reduce((acc, tx) => {
+        if (!tx.isIncome) acc[tx.subCategoryId] = (acc[tx.subCategoryId] || 0) + (parseFloat(tx.amount) || 0);
+        return acc;
+      }, {});
+
+      setRebalanceData({
+        newRemaining,
+        categories: currentMonth.categories,
+        spentBySubCategory: spentMap,
+        sinkingFundBalances: currentMonth.sinkingFundBalances,
+        debts: newDebts,
+        totalIncome,
+        savingsGoal: currentMonth.savingsGoal,
+      });
+      setIsRebalanceModalOpen(true);
+    }
+  };
+
+  // --- Render Helpers ---
+  const currentMonthData = useMemo(() => {
+    const monthKey = (typeof budgetData.currentStep !== 'number' || budgetData.currentStep > 8) ? viewDate : Object.keys(budgetData.monthlyData)[0];
+    return budgetData.monthlyData[monthKey] || getNewMonthEntry();
+  }, [budgetData.monthlyData, viewDate, budgetData.currentStep]);
+
+  const monthlyDataKeys = useMemo(() => Object.keys(budgetData.monthlyData), [budgetData.monthlyData]);
+
+  // Calculated totals for Wizard steps
+  const totalIncome = (currentMonthData.income.source1 || 0) + (currentMonthData.income.source2 || 0);
+  const remainingAfterSavings = totalIncome - (currentMonthData.savingsGoal || 0);
+  const totalBudgeted = (currentMonthData.categories || []).reduce((acc, cat) => acc + cat.subcategories.reduce((sAcc, sub) => {
+    if (sub.linkedDebtId) {
+       const debt = budgetData.debts.find(d => d.id === sub.linkedDebtId);
+       return sAcc + (debt ? (debt.monthlyPayment || 0) + (debt.extraMonthlyPayment || 0) : 0);
+    }
+    return sAcc + (sub.budgeted || 0);
+  }, 0), 0);
+  const remainingToBudget = totalIncome - (currentMonthData.savingsGoal || 0) - totalBudgeted;
+
+  // Memoize Spent Map for AddTransaction
+  const spentOnDebtsMap = useMemo(() => {
+    const debtMap = new Map();
+    const debtSubIds = new Set();
+    currentMonthData.categories.forEach(cat => cat.subcategories.forEach(sub => { if(sub.linkedDebtId) debtSubIds.add(sub.id); }));
+    currentMonthData.transactions.forEach(tx => {
+      if(debtSubIds.has(tx.subCategoryId) && !tx.isIncome) {
+        const sub = currentMonthData.categories.flatMap(c=>c.subcategories).find(s=>s.id===tx.subCategoryId);
+        if(sub) debtMap.set(sub.linkedDebtId, (debtMap.get(sub.linkedDebtId)||0) + (parseFloat(tx.amount)||0));
+      }
+    });
+    return debtMap;
+  }, [currentMonthData.categories, currentMonthData.transactions]);
+
+
+  if (!isUserDocLoaded || !isDataLoaded) return <div className="flex min-h-screen items-center justify-center bg-slate-100"><Loader2 className="h-12 w-12 animate-spin text-indigo-600" /><span className="ml-4 text-lg text-gray-700">Loading Data...</span></div>;
+
+  const isSetupComplete = typeof budgetData.currentStep !== 'number' || budgetData.currentStep > 13;
+
+  return (
+    <>
+      {/* Global Modals */}
+      <JoinBudgetModal isOpen={isJoinModalOpen} onClose={() => { setIsJoinModalOpen(false); setPendingJoinId(null); }} onJoin={handleJoinBudget} initialBudgetId={pendingJoinId} message={joinModalMessage} setMessage={setJoinModalMessage} />
+      <ConfirmLeaveModal isOpen={isLeaveModalOpen} onClose={() => setIsLeaveModalOpen(false)} onConfirm={handleLeaveBudget} />
+      <ConfirmRemoveModal isOpen={isRemoveModalOpen} onClose={() => setIsRemoveModalOpen(false)} onConfirm={handleRemovePartner} partnerName={userDoc?.sharedWith?.name} />
+      <RebalanceBudgetModal isOpen={isRebalanceModalOpen} onClose={() => setIsRebalanceModalOpen(false)} rebalanceData={rebalanceData} onSave={(newCats) => { handleCategoriesChange(newCats); setIsRebalanceModalOpen(false); }} />
+      
+      <AddTransactionModal isOpen={isTransactionModalOpen} onClose={() => setIsTransactionModalOpen(false)} onSave={handleSaveTransaction} categories={currentMonthData.categories} bankAccounts={budgetData.bankAccounts} defaultAccountId={budgetData.defaultAccountId} savingsAccountId={budgetData.savingsAccountId} spentOnDebtsMap={spentOnDebtsMap} />
+      <AddIncomeModal isOpen={isIncomeModalOpen} onClose={() => setIsIncomeModalOpen(false)} onSave={handleSaveIncome} bankAccounts={budgetData.bankAccounts} />
+      <AddTransferModal isOpen={isTransferModalOpen} onClose={() => setIsTransferModalOpen(false)} onSave={handleSaveTransfer} bankAccounts={budgetData.bankAccounts} />
+      
+      <TransactionDetailModal isOpen={isTransactionDetailModalOpen} onClose={() => setIsTransactionDetailModalOpen(false)} filter={transactionModalFilter} allTransactions={currentMonthData.transactions} categories={currentMonthData.categories} bankAccounts={budgetData.bankAccounts} onSaveTransaction={() => {}} onDeleteTransaction={() => {}} onReturnTransaction={() => {}} />
+      <AllTransactionsModal isOpen={isAllTransactionsModalOpen} onClose={() => setIsAllTransactionsModalOpen(false)} allTransactions={currentMonthData.transactions} categories={currentMonthData.categories} bankAccounts={budgetData.bankAccounts} onSaveTransaction={() => {}} onDeleteTransaction={() => {}} onReturnTransaction={() => {}} />
+      <AccountTransactionModal isOpen={isAccountModalOpen} onClose={() => setIsAccountModalOpen(false)} filter={accountModalFilter} allTransactions={currentMonthData.transactions} categories={currentMonthData.categories} bankAccounts={budgetData.bankAccounts} onSaveTransaction={() => {}} onDeleteTransaction={() => {}} onReturnTransaction={() => {}} />
+
+      <DebtDetailModal isOpen={isDebtDetailModalOpen} onClose={() => setIsDebtDetailModalOpen(false)} debt={selectedDebt} onUpdateDebt={() => {}} allTransactions={currentMonthData.transactions} categories={currentMonthData.categories} onOpenLumpSumModal={(id) => { setLumpSumDebtId(id); setIsLumpSumModalOpen(true); setIsDebtDetailModalOpen(false); }} onOpenEditModal={(debt) => { setEditingDebt(debt); setIsDebtDetailModalOpen(false); }} />
+      <LumpSumPaymentModal isOpen={isLumpSumModalOpen} onClose={() => { setIsLumpSumModalOpen(false); setLumpSumDebtId(null); }} onSave={() => {}} debts={budgetData.debts} bankAccounts={budgetData.bankAccounts} defaultAccountId={budgetData.defaultAccountId} savingsAccountId={budgetData.savingsAccountId} initialDebtId={lumpSumDebtId} />
+      <EditDebtModal isOpen={!!editingDebt} onClose={() => setEditingDebt(null)} onSave={() => {}} debt={editingDebt} />
+
+      <div className="min-h-screen bg-[#F8F9FA] font-sans text-gray-900">
+        <div className="mx-auto w-full">
+          <main>
+            {isSetupComplete ? (
+              <div className="grid min-h-screen w-full grid-cols-[280px_1fr_450px] gap-8 p-6 font-montserrat text-gray-900">
+                <div><Sidebar activeTab={activeTab} onTabClick={setActiveTab} /></div>
+                <div className="flex flex-col pt-2">
+                  <HeaderBar userName={budgetData.userName} viewDate={viewDate} monthlyDataKeys={monthlyDataKeys} setViewDate={setViewDate} onSimulateRollover={handleSimulateRollover} onOpenTransactionModal={() => setIsTransactionModalOpen(true)} />
+                  {activeTab === 'budget' && <HeroBar categories={currentMonthData.categories} transactions={currentMonthData.transactions} income={currentMonthData.income} savingsGoal={currentMonthData.savingsGoal} />}
+                  
+                  <div className="mt-8 w-full">
+                    {activeTab === 'budget' && (
+                      <BudgetView 
+                        categories={currentMonthData.categories} 
+                        transactions={currentMonthData.transactions} 
+                        sinkingFundBalances={currentMonthData.sinkingFundBalances} 
+                        onCategoriesChange={handleCategoriesChange} 
+                        debts={budgetData.debts}
+                        onOpenTransactionDetails={(filter) => { setTransactionModalFilter(filter); setIsTransactionDetailModalOpen(true); }}
+                        onOpenAllTransactionsModal={() => setIsAllTransactionsModalOpen(true)}
+                        onFundSinkingFunds={() => {}}
+                      />
+                    )}
+                    {activeTab === 'reports' && <ReportsDashboard categories={currentMonthData.categories} transactions={currentMonthData.transactions} debts={budgetData.debts} income={currentMonthData.income} savingsGoal={currentMonthData.savingsGoal} onIncomeChange={handleIncomeChange} onSavingsChange={handleSavingsChange} />}
+                    {activeTab === 'debts' && <DebtsView debts={budgetData.debts} onDebtsChange={handleDebtsChange} onOpenDebtDetails={(debt) => { setSelectedDebt(debt); setIsDebtDetailModalOpen(true); }} onOpenLumpSumModal={() => { setLumpSumDebtId(null); setIsLumpSumModalOpen(true); }} />}
+                    {activeTab === 'accounts' && <AccountsView accounts={budgetData.bankAccounts} defaultAccountId={budgetData.defaultAccountId} onAccountsChange={handleBankAccountsChange} onSetDefaultAccount={handleSetDefaultAccount} savingsAccountId={budgetData.savingsAccountId} onSavingsAccountChange={handleSavingsAccountChange} mainSavingsAccountId={budgetData.mainSavingsAccountId} onMainSavingsAccountChange={handleMainSavingsAccountChange} onOpenAccountTransactions={(filter) => { setAccountModalFilter(filter); setIsAccountModalOpen(true); }} onOpenTransferModal={() => setIsTransferModalOpen(true)} />}
+                    {activeTab === 'settings' && <SettingsView onSignOut={onSignOut} budgetId={userId} updateBudget={updateBudget} userDoc={userDoc} effectiveBudgetId={effectiveBudgetId} onOpenJoinModal={() => setIsJoinModalOpen(true)} onOpenLeaveModal={() => setIsLeaveModalOpen(true)} onOpenRemoveModal={() => setIsRemoveModalOpen(true)} sharingMessage={sharingMessage} setSharingMessage={setSharingMessage} />}
+                    
+                    {['transactions', 'savings', 'account'].includes(activeTab) && <div className="flex h-64 items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-white"><p className="text-lg text-gray-400">This view is coming soon.</p></div>}
+                  </div>
+                </div>
+                
+                <aside className="sticky top-6 h-[calc(100vh-48px)] overflow-y-auto no-scrollbar pt-2">
+                  <div className="flex flex-col gap-6">
+                    <RecentActivityCard transactions={currentMonthData.transactions} categories={currentMonthData.categories} />
+                    <UpcomingBillsCard debts={budgetData.debts} />
+                  </div>
+                </aside>
+              </div>
+            ) : (
+              <>
+                {budgetData.currentStep === 0 && <WizardStep_Welcome onStartNew={() => handleStepChange(2)} onStartJoin={() => handleStepChange(1)} />}
+                {budgetData.currentStep === 1 && <WizardStep_Join onJoin={handleJoinBudget} onBack={() => handleStepChange(0)} message={joinModalMessage} setMessage={setJoinModalMessage} joinBudgetId={joinBudgetId} />}
+                {budgetData.currentStep === 2 && <WizardStep1a_AccountsInfo onBack={() => handleStepChange(0)} onNext={() => handleStepChange(3)} />}
+                {budgetData.currentStep === 3 && <WizardStep1b_MainSavingsAccount budgetData={budgetData} onAccountsChange={handleBankAccountsChange} onMainSavingsAccountChange={handleMainSavingsAccountChange} onBack={() => handleStepChange(2)} onNext={() => handleStepChange(4)} />}
+                {budgetData.currentStep === 4 && <WizardStep1c_DefaultAccount budgetData={budgetData} onAccountsChange={handleBankAccountsChange} onSetDefaultAccount={handleSetDefaultAccount} onBack={() => handleStepChange(3)} onNext={() => handleStepChange(5)} />}
+                {budgetData.currentStep === 5 && <WizardStep1d_SinkingFundAccount budgetData={budgetData} onAccountsChange={handleBankAccountsChange} onSavingsAccountChange={handleSavingsAccountChange} onBack={() => handleStepChange(4)} onNext={() => handleStepChange(6)} />}
+                {budgetData.currentStep === 6 && <WizardStep1e_AccountSummary budgetData={budgetData} onAccountsChange={handleBankAccountsChange} onSetDefaultAccount={handleSetDefaultAccount} onMainSavingsAccountChange={handleMainSavingsAccountChange} onSavingsAccountChange={handleSavingsAccountChange} onBack={() => handleStepChange(5)} onNext={() => handleStepChange(7)} />}
+                {budgetData.currentStep === 7 && <WizardStep2_Income budgetData={budgetData} income={currentMonthData.income} totalIncome={totalIncome} onIncomeChange={handleIncomeChange} onNext={() => handleStepChange(8)} onBack={() => handleStepChange(6)} />}
+                {budgetData.currentStep === 8 && <WizardStep3_Savings budgetData={budgetData} savingsGoal={currentMonthData.savingsGoal} totalIncome={totalIncome} remainingAfterSavings={remainingAfterSavings} onSavingsChange={handleSavingsChange} bankAccounts={budgetData.bankAccounts} mainSavingsAccountId={budgetData.mainSavingsAccountId} onMainSavingsAccountChange={handleMainSavingsAccountChange} onNext={() => handleStepChange(9)} onBack={() => handleStepChange(7)} />}
+                {budgetData.currentStep === 9 && <WizardStep6_DebtSetup budgetData={budgetData} debts={budgetData.debts} onDebtsChange={handleDebtsChange} onBack={() => handleStepChange(8)} onNext={() => handleStepChange(10)} />}
+                {budgetData.currentStep === 10 && <WizardStep4_Categories budgetData={budgetData} categories={currentMonthData.categories} onCategoriesChange={handleCategoriesChange} onNext={() => handleStepChange(11)} onBack={() => handleStepChange(9)} />}
+                {budgetData.currentStep === 11 && <WizardStep_LinkDebts budgetData={budgetData} categories={currentMonthData.categories} debts={budgetData.debts} onCategoriesChange={handleCategoriesChange} onBack={() => handleStepChange(10)} onNext={() => handleStepChange(12)} />}
+                {budgetData.currentStep === 12 && <WizardStep5_AssignBudgets budgetData={budgetData} categories={currentMonthData.categories} remainingToBudget={remainingToBudget} onCategoriesChange={handleCategoriesChange} debts={budgetData.debts} onBack={() => handleStepChange(11)} bankAccounts={budgetData.bankAccounts} onFinishSetup={() => handleStepChange('dashboard')} onUpdateBankAccounts={handleBankAccountsChange} onUpdateDebts={handleDebtsChange} sinkingFundBalances={currentMonthData.sinkingFundBalances} onUpdateSinkingFundBalances={handleSinkingFundBalancesChange} savingsAccountId={budgetData.savingsAccountId} />}
+                {budgetData.currentStep === 13 && <WizardStep7_Complete onGoToDashboard={() => handleStepChange('dashboard')} onStartOver={() => updateBudget(getDefaultBudgetData())} />}
+              </>
+            )}
+          </main>
+        </div>
+      </div>
+    </>
+  );
+}
+
+export default function App() {
+  const [userId, setUserId] = useState(null);
+  const [isAuthReady, setIsAuthReady] = useState(false);
+  const [joinBudgetId, setJoinBudgetId] = useState(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('join')) setJoinBudgetId(params.get('join'));
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUserId(user ? user.uid : null);
+      setIsAuthReady(true);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  if (!isAuthReady) return <div className="flex min-h-screen items-center justify-center bg-slate-100"><Loader2 className="h-12 w-12 animate-spin text-indigo-600" /><span className="ml-4 text-lg text-gray-700">Connecting...</span></div>;
+  if (!userId) return <LoginScreen joinBudgetId={joinBudgetId} />;
+  return <BudgetApp userId={userId} onSignOut={() => signOut(auth)} joinBudgetId={joinBudgetId} />;
+}
