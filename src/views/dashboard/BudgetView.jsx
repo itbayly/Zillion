@@ -36,8 +36,8 @@ export default function BudgetView({
       />
 
       <div className="space-y-0">
-        {/* Action Buttons */}
-        <div className="mb-8 flex justify-end gap-4 w-[1050px]">
+        {/* Action Buttons - UPDATED Width to 924px */}
+        <div className="mb-8 flex justify-end gap-4 w-full max-w-[924px]">
           <button
             type="button"
             onClick={onFundSinkingFunds}
@@ -71,7 +71,7 @@ export default function BudgetView({
         </div>
 
         {categories.length === 0 && (
-          <div className="w-[1050px] p-12 text-center rounded-xl border-2 border-dashed border-gray-300">
+          <div className="w-full max-w-[924px] p-12 text-center rounded-xl border-2 border-dashed border-gray-300">
             <p className="text-gray-400 font-montserrat">
               No categories set up yet.
             </p>

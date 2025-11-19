@@ -67,8 +67,8 @@ export function HeaderBar({ userName, viewDate, monthlyDataKeys, setViewDate, on
   };
 
   return (
-    // Added 'w-full max-w-[1050px]' to the className below to match card width
-    <div className="relative mb-10 flex w-full max-w-[1050px] items-center justify-between">
+    // UPDATED: Width increased to 924px
+    <div className="relative mb-10 flex w-full max-w-[924px] items-center justify-between">
       <div>
         <h1 className="font-montserrat text-[28px] font-bold text-[#1E1E1E]">{getGreeting()}</h1>
         <p className="mt-1 font-montserrat text-[14px] font-normal text-[#6B7280]">{getContextText()}</p>
@@ -155,38 +155,39 @@ export function HeroBar({ categories, transactions, income, savingsGoal }) {
   if (netCashFlow < 0) flowColor = 'text-[#EF767A]';
   else if (netCashFlow < totalSavingsAllocated) flowColor = 'text-[#FFB347]';
 
+  // UPDATED: Height (110px), Width (924px), Padding (p-6), Fonts increased (12, 29, 13)
   return (
-    <div className="mb-8 flex h-[120px] w-full max-w-[1050px] items-center justify-between rounded-xl bg-white px-6 shadow-[0px_3px_20px_rgba(0,0,0,0.10)]">
+    <div className="mb-8 flex h-[110px] w-full max-w-[924px] items-center justify-between rounded-xl bg-white px-6 shadow-[0px_3px_20px_rgba(0,0,0,0.10)]">
       <div className="flex flex-1 flex-col items-center justify-center">
         <span className="font-montserrat text-[12px] font-bold text-[#4B5563]">
           {discretionaryRemaining >= 0 ? 'SAFE TO SPEND' : 'OVER BUDGET BY'}
         </span>
-        <span className={`mt-1 font-montserrat text-[32px] font-bold ${safeColor}`}>
+        <span className={`mt-1 font-montserrat text-[29px] font-bold ${safeColor}`}>
           {formatCurrency(Math.abs(discretionaryRemaining))}
         </span>
-        <span className="font-montserrat text-[14px] font-normal text-[#4B5563]">
+        <span className="font-montserrat text-[13px] font-normal text-[#4B5563]">
           {discretionaryRemaining >= 0 ? `${formatCurrency(dailySafe)} / Day Remaining` : 'Reduce spending immediately'}
         </span>
       </div>
 
-      <div className="h-[72px] w-[1px] bg-[#E5E7EB]" />
+      <div className="h-[60px] w-[1px] bg-[#E5E7EB]" />
 
       <div className="flex flex-1 flex-col items-center justify-center">
         <span className="font-montserrat text-[12px] font-bold text-[#4B5563]">MONTHLY PACING</span>
-        <span className={`mt-1 font-montserrat text-[32px] font-bold ${pacingColor}`}>{pacingPercent.toFixed(0)}%</span>
-        <span className="font-montserrat text-[14px] font-normal text-[#4B5563]">
+        <span className={`mt-1 font-montserrat text-[29px] font-bold ${pacingColor}`}>{pacingPercent.toFixed(0)}%</span>
+        <span className="font-montserrat text-[13px] font-normal text-[#4B5563]">
           {formatCurrency(totalSpent)} of {formatCurrency(totalBudgeted)} Spent
         </span>
       </div>
 
-      <div className="h-[72px] w-[1px] bg-[#E5E7EB]" />
+      <div className="h-[60px] w-[1px] bg-[#E5E7EB]" />
 
       <div className="flex flex-1 flex-col items-center justify-center">
         <span className="font-montserrat text-[12px] font-bold text-[#4B5563]">NET CASH FLOW</span>
-        <span className={`mt-1 font-montserrat text-[32px] font-bold ${flowColor}`}>
+        <span className={`mt-1 font-montserrat text-[29px] font-bold ${flowColor}`}>
           {netCashFlow >= 0 ? '+' : ''}{formatCurrency(netCashFlow)}
         </span>
-        <span className="font-montserrat text-[14px] font-normal text-[#4B5563]">
+        <span className="font-montserrat text-[13px] font-normal text-[#4B5563]">
           {formatCurrency(totalIncome)} In / {formatCurrency(totalSpent)} Out
         </span>
       </div>
