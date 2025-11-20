@@ -16,6 +16,9 @@ export default function CategoryCard({
     let b = 0;
     let s = 0;
     category.subcategories.forEach((sub) => {
+      // SKIP DEDUCTIONS FROM CARD MATH
+      if (sub.type === 'deduction') return;
+
       let subBudget = sub.budgeted || 0;
       if (sub.linkedDebtId) {
         const debt = debts.find((d) => d.id === sub.linkedDebtId);
@@ -31,67 +34,62 @@ export default function CategoryCard({
   const progressPercent = totalBudgeted > 0 ? (totalSpent / totalBudgeted) * 100 : 0;
 
   let statusColor = 'text-[#3DDC97]';
-  let barColor = 'bg-[#3DDC97]';
-
   if (remaining < 0) {
     statusColor = 'text-[#EF767A]';
-    barColor = 'bg-[#EF767A]';
   } else if (progressPercent > 75) {
     statusColor = 'text-[#FFB347]';
-    barColor = 'bg-[#FFB347]';
   }
 
   return (
     <div className="mb-6 w-full max-w-[924px] rounded-xl bg-white shadow-[0px_3px_20px_rgba(0,0,0,0.10)] transition-all">
-      {/* Header */}
+      {/* --- Main Category Header --- */}
       <div className="cursor-pointer p-6" onClick={() => setIsExpanded(!isExpanded)}>
         <div className="flex items-center justify-between">
           <h3 className="font-montserrat text-[17px] font-bold uppercase text-[#4B5563]">{category.name}</h3>
           <div className="flex items-center gap-4">
-            <span className={`font-montserrat text-[17px] font-bold ${statusColor}`}>
+            <span className="font-montserrat text-[11px] font-bold text-[#9CA3AF] uppercase">
+              SPENT: {formatCurrency(totalSpent)}
+            </span>
+            <span className={`font-montserrat text-[11px] font-bold uppercase ${statusColor}`}>
               {remaining < 0
-                ? `${formatCurrency(Math.abs(remaining))} OVER BUDGET`
+                ? `${formatCurrency(Math.abs(remaining))} OVER`
                 : `${formatCurrency(remaining)} REMAINING`}
             </span>
             <ChevronDown className={`h-6 w-6 text-gray-400 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
           </div>
         </div>
-
-        {/* CONDITIONAL: Hide these details when expanded */}
-        {!isExpanded && (
-          <>
-            <div className="mt-2 flex items-center justify-between">
-              <span className="font-montserrat text-[13px] font-normal text-[#4B5563]">{formatCurrency(totalSpent)} SPENT</span>
-              <span className="mr-10 font-montserrat text-[13px] font-normal text-[#4B5563]">{formatCurrency(totalBudgeted)} BUDGETED</span>
-            </div>
-            <div className="mt-5 h-[10px] w-full rounded-full bg-[#E5E7EB]">
-              <div className={`h-[10px] rounded-full ${barColor}`} style={{ width: `${Math.min(progressPercent, 100)}%` }} />
-            </div>
-          </>
-        )}
       </div>
 
-      {/* Expanded Subcategories */}
+      {/* --- Expanded Subcategories --- */}
       {isExpanded && (
-        <div className="border-t border-gray-200 px-6 pb-2">
-          <div className="flex flex-col">
+        <div className="border-t border-gray-200 px-6 pb-6 pt-2">
+          <div className="flex flex-col gap-2">
             {category.subcategories.map((sub) => {
               const isDebt = !!sub.linkedDebtId;
               const isFund = sub.type === 'sinking_fund';
+              const isDeduction = sub.type === 'deduction';
+              
               const subSpent = spentBySubCategory[sub.id] || 0;
               let subBudgeted = sub.budgeted || 0;
+              
               if (isDebt) {
                 const debt = debts.find((d) => d.id === sub.linkedDebtId);
                 if (debt) subBudgeted = (debt.monthlyPayment || 0) + (debt.extraMonthlyPayment || 0);
               }
 
               const currentBalance = isFund ? sinkingFundBalances[sub.id] || 0 : 0;
-              let subProgress = subBudgeted > 0 ? (subSpent / subBudgeted) * 100 : 0;
+              
+              let subProgress = (subBudgeted > 0 && !isDeduction) ? (subSpent / subBudgeted) * 100 : 0;
               let subBarColor = 'bg-[#3DDC97]';
               let subStatusColor = 'text-[#3DDC97]';
               let subStatusText = '';
 
-              if (isDebt) {
+              if (isDeduction) {
+                 // GHOST ROW LOGIC
+                 subStatusColor = 'text-gray-400';
+                 subStatusText = 'AUTO-DEDUCTED';
+                 subBarColor = 'bg-gray-200';
+              } else if (isDebt) {
                 const subRemaining = subBudgeted - subSpent;
                 subBarColor = 'bg-[#A78BFA]';
                 subStatusColor = 'text-[#7C3AED]';
@@ -115,35 +113,50 @@ export default function CategoryCard({
                 } else {
                   subStatusText = `${formatCurrency(subRemaining)} REMAINING`;
                   if (subProgress > 75) {
-                    subStatusColor = 'text-[#FFB347]';
-                    subBarColor = 'bg-[#FFB347]';
+                      subStatusColor = 'text-[#FFB347]';
+                      subBarColor = 'bg-[#FFB347]';
                   }
                 }
               }
 
               return (
-                // Added border-t and padding for divider line effect
-                <div key={sub.id} className="relative w-full border-t border-gray-100 py-6 first:border-t-0">
+                <div key={sub.id} className={`relative w-full border-t border-gray-100 py-4 first:border-t-0 ${isDeduction ? 'opacity-70' : ''}`}>
                   <button
                     className="absolute inset-0 z-10 w-full cursor-pointer opacity-0"
-                    onClick={() => onOpenTransactionDetails({ type: 'subcategory', id: sub.id, name: sub.name })}
-                    title="View transactions"
+                    onClick={() => !isDeduction && onOpenTransactionDetails({ type: 'subcategory', id: sub.id, name: sub.name })}
+                    title={isDeduction ? "Deductions are automatic" : "View transactions"}
                   />
+                  
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">
-                      <span className="font-montserrat text-[15px] font-bold text-[#4B5563]">{sub.name}</span>
+                      <span className={`font-montserrat text-[15px] font-bold ${isDeduction ? 'text-gray-500' : 'text-[#4B5563]'}`}>{sub.name}</span>
                       {isDebt && <StatusPill type="debt" />}
                       {isFund && <StatusPill type="fund" />}
+                      {isDeduction && (
+                        <div className="ml-3 flex items-center justify-center rounded-xl bg-gray-100 px-3 py-1">
+                          <span className="font-montserrat text-[10px] font-bold text-gray-500">PAYSTUB</span>
+                        </div>
+                      )}
                     </div>
-                    <span className={`font-montserrat text-[17px] font-bold ${subStatusColor}`}>{subStatusText}</span>
+                    <span className={`font-montserrat text-[13px] font-bold ${subStatusColor}`}>{subStatusText}</span>
                   </div>
+
                   <div className="mt-1 flex justify-between font-montserrat text-[13px] font-normal text-[#4B5563]">
-                    <span>{formatCurrency(subSpent)} Spent {isFund ? ` | ${formatCurrency(subBudgeted)} Added` : ''}</span>
-                    <span>{isDebt ? 'Monthly Payment' : 'Budgeted'}: {formatCurrency(subBudgeted)}</span>
+                    {isDeduction ? (
+                        <span className="italic text-gray-400">Value: {formatCurrency(subBudgeted)}</span>
+                    ) : (
+                        <>
+                            <span>{formatCurrency(subSpent)} {isDebt ? 'Paid' : 'Spent'} {isFund ? ` | ${formatCurrency(subBudgeted)} Added` : ''}</span>
+                            <span>{isDebt ? 'Monthly Payment' : 'Budgeted'}: {formatCurrency(subBudgeted)}</span>
+                        </>
+                    )}
                   </div>
-                  <div className="mt-3 h-[8px] w-full rounded-full bg-[#E5E7EB]">
-                    <div className={`h-[8px] rounded-full ${subBarColor}`} style={{ width: `${Math.min(subProgress, 100)}%` }} />
-                  </div>
+
+                  {!isDeduction && (
+                    <div className="mt-3 h-[8px] w-full rounded-full bg-[#E5E7EB]">
+                      <div className={`h-[8px] rounded-full ${subBarColor}`} style={{ width: `${Math.min(subProgress, 100)}%` }} />
+                    </div>
+                  )}
                 </div>
               );
             })}

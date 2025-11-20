@@ -1,7 +1,27 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { DollarSign } from 'lucide-react';
 
-// 1. Standard Text/Number Input for Wizard
+// --- Helper: Format string with commas only (while typing) ---
+const formatNumberString = (val) => {
+  if (!val) return '';
+  const str = val.toString().replace(/,/g, ''); // Strip existing commas
+  if (isNaN(str)) return '';
+  const parts = str.split('.');
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return parts.join('.');
+};
+
+// --- Helper: Force 2 decimal places (on blur or disabled) ---
+const formatCurrencyOnBlur = (val) => {
+  if (!val) return '';
+  const raw = val.toString().replace(/,/g, '');
+  const num = parseFloat(raw);
+  if (isNaN(num)) return '';
+  // Returns "1,234.56"
+  return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
+// 1. Standard Text/Number Input (No changes)
 export function WizardTextInput({
   label,
   id,
@@ -34,70 +54,130 @@ export function WizardTextInput({
   );
 }
 
-// 2. Input for Assignment Modal (prevents focus loss issues)
-export function AssignmentInput({ value, onChange, onBlur }) {
-  const handleFocus = (e) => e.target.select();
+// 2. Wizard Currency Input (Handles Auto-Commas & Blur)
+export function WizardCurrencyInput({ label, id, value, onChange, placeholder = '0.00' }) {
+  const [localValue, setLocalValue] = useState('');
+
+  useEffect(() => {
+    if (value !== undefined && value !== null && value !== '') {
+      setLocalValue(formatNumberString(value));
+    }
+  }, [value]);
+
+  const handleChange = (e) => {
+    const raw = e.target.value.replace(/,/g, '');
+    if (/^\d*\.?\d*$/.test(raw)) {
+      setLocalValue(formatNumberString(raw));
+      onChange(raw); 
+    }
+  };
+
+  const handleBlur = () => {
+    if (localValue) {
+      const formatted = formatCurrencyOnBlur(localValue);
+      setLocalValue(formatted);
+    }
+  };
 
   return (
-    <div className="relative rounded-md shadow-sm">
+    <div>
+      <label htmlFor={id} className="block text-sm font-medium text-gray-700">
+        {label}
+      </label>
+      <div className="relative mt-1 rounded-md shadow-sm">
+        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+          <DollarSign className="h-5 w-5 text-gray-400" />
+        </div>
+        <input
+          type="text"
+          inputMode="decimal"
+          id={id}
+          name={id}
+          value={localValue}
+          onChange={handleChange}
+          onBlur={handleBlur}
+          placeholder={placeholder}
+          className="block w-full rounded-md border-gray-300 pl-10 focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm"
+        />
+      </div>
+    </div>
+  );
+}
+
+// 3. Standard Currency Input (Handles Auto-Commas & Blur)
+export function StandardCurrencyInput({ value, onChange, placeholder = '0.00', id, disabled = false, autoFocus = false }) {
+  const [localValue, setLocalValue] = useState('');
+
+  useEffect(() => {
+    if (value !== undefined && value !== null && value !== '') {
+      setLocalValue(formatNumberString(value));
+    } else {
+      setLocalValue('');
+    }
+  }, [value]);
+
+  const handleChange = (e) => {
+    const raw = e.target.value.replace(/,/g, '');
+    if (/^\d*\.?\d*$/.test(raw)) {
+      setLocalValue(formatNumberString(raw));
+      onChange(raw);
+    }
+  };
+
+  const handleBlur = () => {
+    if (localValue) {
+      const formatted = formatCurrencyOnBlur(localValue);
+      setLocalValue(formatted);
+    }
+  };
+
+  return (
+    <div className="relative mt-1 rounded-md shadow-sm">
       <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-        <DollarSign className="h-5 w-5 text-gray-400" />
+        <DollarSign className="h-4 w-4 text-gray-400" />
       </div>
       <input
-        type="number"
-        className="block w-full rounded-md border-gray-300 pl-10 text-right focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-        placeholder="0.00"
-        value={value || ''}
-        onChange={(e) => onChange(e.target.value)}
-        onFocus={handleFocus}
-        onBlur={onBlur}
+        type="text"
+        inputMode="decimal"
+        id={id}
+        value={localValue}
+        onChange={handleChange}
+        onBlur={handleBlur}
+        disabled={disabled}
+        autoFocus={autoFocus}
+        className="block w-full rounded-md border-gray-300 pl-7 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm disabled:bg-gray-100 disabled:text-gray-500"
+        placeholder={placeholder}
       />
     </div>
   );
 }
 
-// 3. Smart Budget Input (implements "Delete the 0" fix)
-export function BudgetInput({ value, onChange, disabled = false }) {
-  // Safe initialization logic
-  const initializeValue = (val) => {
-    const num = parseFloat(val);
-    if (isNaN(num) || num === 0) return '';
-    return num.toFixed(2);
-  };
-
-  const [internalValue, setInternalValue] = useState(() =>
-    initializeValue(value)
-  );
-  const inputRef = useRef(null);
+// 4. Assignment Input (Handles Auto-Commas & Blur)
+export function AssignmentInput({ value, onChange, onBlur }) {
+  const [localValue, setLocalValue] = useState('');
 
   useEffect(() => {
-    const numericValue = parseFloat(value) || 0;
-    // Sync with external value, but only if the input isn't focused
-    if (document.activeElement !== inputRef.current) {
-      setInternalValue(numericValue === 0 ? '' : numericValue.toFixed(2));
+    if (value !== undefined && value !== null && value !== '') {
+      setLocalValue(formatNumberString(value));
     }
-    // Also update internal state if the 'disabled' prop changes (e.g., linking a debt)
-    if (disabled) {
-      setInternalValue(numericValue === 0 ? '' : numericValue.toFixed(2));
-    }
-  }, [value, disabled]);
-
-  const handleFocus = (e) => {
-    // When focusing, set to the raw number for easy editing
-    const numericValue = parseFloat(value) || 0;
-    setInternalValue(numericValue === 0 ? '' : numericValue);
-    e.target.select();
-  };
+  }, [value]);
 
   const handleChange = (e) => {
-    setInternalValue(e.target.value);
+    const raw = e.target.value.replace(/,/g, '');
+    if (/^\d*\.?\d*$/.test(raw)) {
+      setLocalValue(formatNumberString(raw));
+      onChange(raw);
+    }
   };
 
-  const handleBlur = (e) => {
-    const numericValue = parseFloat(internalValue) || 0;
-    // On blur, format to 2 decimal places
-    setInternalValue(numericValue === 0 ? '' : numericValue.toFixed(2));
-    onChange(numericValue); // Propagate the numeric change
+  const handleFocus = (e) => e.target.select();
+
+  const handleInternalBlur = (e) => {
+    if (localValue) {
+      const formatted = formatCurrencyOnBlur(localValue);
+      setLocalValue(formatted);
+    }
+    if (onBlur) onBlur(e);
   };
 
   return (
@@ -106,12 +186,69 @@ export function BudgetInput({ value, onChange, disabled = false }) {
         <DollarSign className="h-5 w-5 text-gray-400" />
       </div>
       <input
-        ref={inputRef}
-        type="number"
-        step="0.01" // Ensure number arrows step correctly
+        type="text"
+        inputMode="decimal"
+        className="block w-full rounded-md border-gray-300 pl-10 text-right focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+        placeholder="0.00"
+        value={localValue}
+        onChange={handleChange}
+        onFocus={handleFocus}
+        onBlur={handleInternalBlur}
+      />
+    </div>
+  );
+}
+
+// 5. Budget Input (Updated: Check for disabled state)
+export function BudgetInput({ value, onChange, disabled = false }) {
+  const [localValue, setLocalValue] = useState('');
+
+  useEffect(() => {
+    const num = parseFloat(value);
+    if (!value || num === 0) {
+      setLocalValue('');
+    } else {
+      // UPDATED LOGIC HERE
+      if (disabled) {
+        // If disabled (Linked Debt), force standard currency format (1,234.56) immediately
+        setLocalValue(num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+      } else {
+        // If enabled, keep it simple for editing (1,234.56 -> 1,234.56)
+        setLocalValue(formatNumberString(value));
+      }
+    }
+  }, [value, disabled]);
+
+  const handleChange = (e) => {
+    const raw = e.target.value.replace(/,/g, '');
+    if (/^\d*\.?\d*$/.test(raw)) {
+      setLocalValue(formatNumberString(raw));
+      onChange(raw === '' ? 0 : parseFloat(raw)); 
+    }
+  };
+
+  const handleFocus = (e) => e.target.select();
+
+  const handleBlur = () => {
+    const raw = localValue.replace(/,/g, '');
+    const num = parseFloat(raw);
+    if (num && !isNaN(num)) {
+       const formatted = num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+       setLocalValue(formatted);
+    }
+  };
+
+  return (
+    <div className="relative rounded-md shadow-sm">
+      <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+        <DollarSign className="h-5 w-5 text-gray-400" />
+      </div>
+      <input
+        type="text"
+        inputMode="decimal"
         className="block w-full rounded-md border-gray-300 pl-10 text-right focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500"
         placeholder="0.00"
-        value={internalValue}
+        value={localValue}
         onChange={handleChange}
         onFocus={handleFocus}
         onBlur={handleBlur}

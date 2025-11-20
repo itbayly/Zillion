@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, Plus, DollarSign, Trash2, Edit3, History, TrendingDown, Calculator, PiggyBank, Landmark, TrendingUp, ArrowUpNarrowWide, ArrowDownWideNarrow, Percent, CalendarCheck } from 'lucide-react';
+import { X, Plus, DollarSign, Trash2, Edit3, History, TrendingDown, Calculator, PiggyBank, Landmark, TrendingUp, ArrowDownWideNarrow, Percent } from 'lucide-react';
 import { formatCurrency } from '../../utils/helpers';
-import { WizardTextInput, BudgetInput } from '../ui/FormInputs';
+import { WizardTextInput, BudgetInput, WizardCurrencyInput } from '../ui/FormInputs'; // Updated Import
 import { DebtInfoRow } from '../ui/SharedUI';
 import { TransactionHistoryModal } from './TransactionListModals';
 
@@ -27,7 +27,13 @@ export function DebtForm({ onAddDebt }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    
+    // UPDATED: stricter validation
+    if (!name.trim() || !debtType || !compoundingFrequency || amountOwed === '' || monthlyPayment === '' || interestRate === '') {
+      alert("Please complete all required fields.");
+      return;
+    }
+
     const finalStarting = parseFloat(startingAmount) > 0 ? parseFloat(startingAmount) : parseFloat(amountOwed) || 0;
     const finalOwed = parseFloat(amountOwed) > 0 ? parseFloat(amountOwed) : finalStarting;
 
@@ -79,10 +85,14 @@ export function DebtForm({ onAddDebt }) {
         </div>
       </div>
       <div className="grid grid-cols-2 gap-4">
-          <WizardTextInput label="Original Amount" id="starting" value={startingAmount} onChange={e => setStartingAmount(e.target.value)} type="number" />
-          <WizardTextInput label="Remaining" id="owed" value={amountOwed} onChange={e => setAmountOwed(e.target.value)} type="number" />
-          <WizardTextInput label="Monthly Payment" id="pmt" value={monthlyPayment} onChange={e => setMonthlyPayment(e.target.value)} type="number" />
-          <WizardTextInput label="Interest Rate" id="rate" value={interestRate} onChange={e => setInterestRate(e.target.value)} type="number" step="0.01" />
+          {/* UPDATED: Use Currency Inputs */}
+          <WizardCurrencyInput label="Original Amount" id="starting" value={startingAmount} onChange={setStartingAmount} />
+          <WizardCurrencyInput label="Remaining" id="owed" value={amountOwed} onChange={setAmountOwed} />
+          <WizardCurrencyInput label="Monthly Payment" id="pmt" value={monthlyPayment} onChange={setMonthlyPayment} />
+          
+          {/* UPDATED: Interest Rate to 4 decimal places */}
+          <WizardTextInput label="Interest Rate" id="rate" value={interestRate} onChange={e => setInterestRate(e.target.value)} type="number" step="0.0001" />
+          
           <WizardTextInput label="Original Term" id="term" value={originalTerm} onChange={e => setOriginalTerm(e.target.value)} type="number" />
           {compoundingFrequency === 'Monthly' && <WizardTextInput label="Due Date" id="due" value={paymentDueDate} onChange={e => setPaymentDueDate(e.target.value)} type="number" />}
       </div>
@@ -106,7 +116,6 @@ export function EditDebtModal({ isOpen, onClose, onSave, debt }) {
         monthlyPayment: parseFloat(formState.monthlyPayment) || 0,
         amountOwed: parseFloat(formState.amountOwed) || 0,
         interestRate: parseFloat(formState.interestRate) || 0,
-        // ... add other parsings as needed
     };
     onSave(updated);
   };
@@ -120,7 +129,6 @@ export function EditDebtModal({ isOpen, onClose, onSave, debt }) {
                 <input name="name" value={formState.name || ''} onChange={handleChange} className="border p-2 rounded col-span-2" placeholder="Name" />
                 <input name="amountOwed" type="number" value={formState.amountOwed || ''} onChange={handleChange} className="border p-2 rounded" placeholder="Remaining" />
                 <input name="interestRate" type="number" step="0.01" value={formState.interestRate || ''} onChange={handleChange} className="border p-2 rounded" placeholder="Rate" />
-                {/* Add other fields as needed for editing */}
             </div>
             <div className="flex justify-end gap-2 mt-6">
                 <button type="button" onClick={onClose} className="px-4 py-2 border rounded">Cancel</button>

@@ -1,196 +1,168 @@
 import React, { useState, useMemo } from 'react';
-import { CalendarDays, ChevronDown, Plus } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { formatCurrency } from '../../utils/helpers';
+import { StatusPill } from '../ui/SharedUI';
 
-// --- Month Dropdown ---
-function MonthDropdown({ isOpen, onClose, monthlyDataKeys, onSelectMonth, onSimulateRollover }) {
-  if (!isOpen) return null;
+export default function CategoryCard({
+  category,
+  spentBySubCategory,
+  sinkingFundBalances,
+  debts,
+  onOpenTransactionDetails,
+}) {
+  const [isExpanded, setIsExpanded] = useState(false);
 
-  const sortedKeys = [...monthlyDataKeys].sort((a, b) => b.localeCompare(a));
+  const { totalBudgeted, totalSpent, remaining } = useMemo(() => {
+    let b = 0;
+    let s = 0;
+    category.subcategories.forEach((sub) => {
+      // SKIP DEDUCTIONS FROM CARD MATH
+      if (sub.type === 'deduction') return;
 
-  const formatKey = (key) => {
-    const [year, month] = key.split('-');
-    const date = new Date(year, month - 1, 15);
-    return date.toLocaleString('default', { month: 'long', year: 'numeric' });
-  };
-
-  return (
-    <div className="absolute right-[228px] top-[60px] z-50 w-[218px] rounded-lg border border-gray-100 bg-white py-2 shadow-xl">
-      <div className="max-h-60 overflow-y-auto">
-        {sortedKeys.map((key) => (
-          <button
-            key={key}
-            onClick={() => { onSelectMonth(key); onClose(); }}
-            className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 hover:font-semibold"
-          >
-            {formatKey(key)}
-          </button>
-        ))}
-      </div>
-      <div className="border-t border-dashed border-gray-300 mt-2 pt-2 px-2">
-        <button
-          onClick={() => { onSimulateRollover(); onClose(); }}
-          className="flex w-full items-center justify-center rounded-md bg-indigo-50 px-2 py-2 text-xs font-bold text-indigo-600 hover:bg-indigo-100"
-        >
-          <Plus className="mr-1 h-3 w-3" />
-          Test: Next Month
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// --- Header Bar ---
-export function HeaderBar({ userName, viewDate, monthlyDataKeys, setViewDate, onSimulateRollover, onOpenTransactionModal }) {
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    const firstName = userName ? userName.split(' ')[0] : 'there';
-    if (hour >= 4 && hour < 12) return `Good Morning, ${firstName}`;
-    if (hour >= 12 && hour < 17) return `Good Afternoon, ${firstName}`;
-    return `Good Evening, ${firstName}`;
-  };
-
-  const formatViewDate = (key) => {
-    if (!key) return 'Loading...';
-    const [year, month] = key.split('-');
-    const date = new Date(year, month - 1, 15);
-    return date.toLocaleString('default', { month: 'long', year: 'numeric' }).toUpperCase();
-  };
-
-  const getContextText = () => {
-    const [year, month] = viewDate.split('-');
-    const date = new Date(year, month - 1, 15);
-    const fullMonth = date.toLocaleString('default', { month: 'long' });
-    return `Here is your budget overview for ${fullMonth} ${year}`;
-  };
-
-  return (
-    // UPDATED: Width increased to 924px
-    <div className="relative mb-10 flex w-full max-w-[924px] items-center justify-between">
-      <div>
-        <h1 className="font-montserrat text-[28px] font-bold text-[#1E1E1E]">{getGreeting()}</h1>
-        <p className="mt-1 font-montserrat text-[14px] font-normal text-[#6B7280]">{getContextText()}</p>
-      </div>
-
-      <div className="flex items-center gap-6">
-        <button
-          onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-          className="flex h-[44px] w-[218px] items-center justify-center rounded-xl bg-white shadow-[0px_3px_10px_rgba(0,0,0,0.10)] transition-shadow hover:shadow-md"
-        >
-          <CalendarDays className="mr-3 h-5 w-5 text-[#4B5563]" />
-          <span className="font-montserrat text-sm font-bold text-[#4B5563]">{formatViewDate(viewDate)}</span>
-          <ChevronDown className="ml-2 h-5 w-5 text-[#4B5563]" />
-        </button>
-        <button
-          onClick={onOpenTransactionModal}
-          className="flex h-[44px] w-[204px] items-center justify-center rounded-xl bg-[#3DDC97] font-montserrat text-sm font-bold text-white transition-transform active:scale-95 hover:brightness-95"
-        >
-          + ADD TRANSACTION
-        </button>
-      </div>
-
-      <MonthDropdown
-        isOpen={isDropdownOpen}
-        onClose={() => setIsDropdownOpen(false)}
-        monthlyDataKeys={monthlyDataKeys}
-        onSelectMonth={setViewDate}
-        onSimulateRollover={onSimulateRollover}
-      />
-    </div>
-  );
-}
-
-// --- Hero Bar ---
-export function HeroBar({ categories, transactions, income, savingsGoal }) {
-  const today = new Date();
-  const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-  const currentDay = today.getDate();
-
-  const { totalBudgeted, totalSpent, discretionaryRemaining } = useMemo(() => {
-    let tBudgeted = 0;
-    let tSpent = 0;
-    let discRemaining = 0;
-
-    const spentMap = {};
-    transactions.forEach((tx) => {
-      if (!tx.isIncome) {
-        const amt = parseFloat(tx.amount) || 0;
-        spentMap[tx.subCategoryId] = (spentMap[tx.subCategoryId] || 0) + amt;
-        tSpent += amt;
+      let subBudget = sub.budgeted || 0;
+      if (sub.linkedDebtId) {
+        const debt = debts.find((d) => d.id === sub.linkedDebtId);
+        if (debt)
+          subBudget = (debt.monthlyPayment || 0) + (debt.extraMonthlyPayment || 0);
       }
+      b += subBudget;
+      s += spentBySubCategory[sub.id] || 0;
     });
+    return { totalBudgeted: b, totalSpent: s, remaining: b - s };
+  }, [category, spentBySubCategory, debts]);
 
-    categories.forEach((cat) => {
-      cat.subcategories.forEach((sub) => {
-        const subBudgeted = sub.budgeted || 0;
-        const subSpent = spentMap[sub.id] || 0;
-        const subRemaining = subBudgeted - subSpent;
-        tBudgeted += subBudgeted;
-        if (sub.type !== 'sinking_fund' && !sub.linkedDebtId) {
-          discRemaining += subRemaining;
-        }
-      });
-    });
+  const progressPercent = totalBudgeted > 0 ? (totalSpent / totalBudgeted) * 100 : 0;
 
-    return { totalBudgeted: tBudgeted, totalSpent: tSpent, discretionaryRemaining: discRemaining };
-  }, [categories, transactions]);
-
-  const safeColor = discretionaryRemaining >= 0 ? 'text-[#3DDC97]' : 'text-[#EF767A]';
-  const daysRemaining = daysInMonth - currentDay;
-  const dailySafe = daysRemaining > 0 ? discretionaryRemaining / daysRemaining : 0;
-
-  const timeElapsedPercent = (currentDay / daysInMonth) * 100;
-  const pacingPercent = totalBudgeted > 0 ? (totalSpent / totalBudgeted) * 100 : 0;
-  let pacingColor = 'text-[#3DDC97]';
-  if (pacingPercent > timeElapsedPercent) {
-    pacingColor = pacingPercent > timeElapsedPercent * 2 ? 'text-[#EF767A]' : 'text-[#FFB347]';
+  let statusColor = 'text-[#3DDC97]';
+  if (remaining < 0) {
+    statusColor = 'text-[#EF767A]';
+  } else if (progressPercent > 75) {
+    statusColor = 'text-[#FFB347]';
   }
 
-  const totalIncome = (income.source1 || 0) + (income.source2 || 0);
-  const netCashFlow = totalIncome - totalSpent;
-  let flowColor = 'text-[#3DDC97]';
-  const totalSavingsAllocated = parseFloat(savingsGoal) || 0;
-  if (netCashFlow < 0) flowColor = 'text-[#EF767A]';
-  else if (netCashFlow < totalSavingsAllocated) flowColor = 'text-[#FFB347]';
-
-  // UPDATED: Height (110px), Width (924px), Padding (p-6), Fonts increased (12, 29, 13)
   return (
-    <div className="mb-8 flex h-[110px] w-full max-w-[924px] items-center justify-between rounded-xl bg-white px-6 shadow-[0px_3px_20px_rgba(0,0,0,0.10)]">
-      <div className="flex flex-1 flex-col items-center justify-center">
-        <span className="font-montserrat text-[12px] font-bold text-[#4B5563]">
-          {discretionaryRemaining >= 0 ? 'SAFE TO SPEND' : 'OVER BUDGET BY'}
-        </span>
-        <span className={`mt-1 font-montserrat text-[29px] font-bold ${safeColor}`}>
-          {formatCurrency(Math.abs(discretionaryRemaining))}
-        </span>
-        <span className="font-montserrat text-[13px] font-normal text-[#4B5563]">
-          {discretionaryRemaining >= 0 ? `${formatCurrency(dailySafe)} / Day Remaining` : 'Reduce spending immediately'}
-        </span>
+    <div className="mb-6 w-full max-w-[924px] rounded-xl bg-white shadow-[0px_3px_20px_rgba(0,0,0,0.10)] transition-all">
+      {/* --- Main Category Header --- */}
+      <div className="cursor-pointer p-6" onClick={() => setIsExpanded(!isExpanded)}>
+        <div className="flex items-center justify-between">
+          <h3 className="font-montserrat text-[17px] font-bold uppercase text-[#4B5563]">{category.name}</h3>
+          <div className="flex items-center gap-4">
+            <span className="font-montserrat text-[11px] font-bold text-[#9CA3AF] uppercase">
+              SPENT: {formatCurrency(totalSpent)}
+            </span>
+            <span className={`font-montserrat text-[11px] font-bold uppercase ${statusColor}`}>
+              {remaining < 0
+                ? `${formatCurrency(Math.abs(remaining))} OVER`
+                : `${formatCurrency(remaining)} REMAINING`}
+            </span>
+            <ChevronDown className={`h-6 w-6 text-gray-400 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+          </div>
+        </div>
       </div>
 
-      <div className="h-[60px] w-[1px] bg-[#E5E7EB]" />
+      {/* --- Expanded Subcategories --- */}
+      {isExpanded && (
+        <div className="border-t border-gray-200 px-6 pb-6 pt-2">
+          <div className="flex flex-col gap-2">
+            {category.subcategories.map((sub) => {
+              const isDebt = !!sub.linkedDebtId;
+              const isFund = sub.type === 'sinking_fund';
+              const isDeduction = sub.type === 'deduction';
+              
+              const subSpent = spentBySubCategory[sub.id] || 0;
+              let subBudgeted = sub.budgeted || 0;
+              
+              if (isDebt) {
+                const debt = debts.find((d) => d.id === sub.linkedDebtId);
+                if (debt) subBudgeted = (debt.monthlyPayment || 0) + (debt.extraMonthlyPayment || 0);
+              }
 
-      <div className="flex flex-1 flex-col items-center justify-center">
-        <span className="font-montserrat text-[12px] font-bold text-[#4B5563]">MONTHLY PACING</span>
-        <span className={`mt-1 font-montserrat text-[29px] font-bold ${pacingColor}`}>{pacingPercent.toFixed(0)}%</span>
-        <span className="font-montserrat text-[13px] font-normal text-[#4B5563]">
-          {formatCurrency(totalSpent)} of {formatCurrency(totalBudgeted)} Spent
-        </span>
-      </div>
+              const currentBalance = isFund ? sinkingFundBalances[sub.id] || 0 : 0;
+              
+              let subProgress = (subBudgeted > 0 && !isDeduction) ? (subSpent / subBudgeted) * 100 : 0;
+              let subBarColor = 'bg-[#3DDC97]';
+              let subStatusColor = 'text-[#3DDC97]';
+              let subStatusText = '';
 
-      <div className="h-[60px] w-[1px] bg-[#E5E7EB]" />
+              if (isDeduction) {
+                 // GHOST ROW LOGIC
+                 subStatusColor = 'text-gray-400';
+                 subStatusText = 'AUTO-DEDUCTED';
+                 subBarColor = 'bg-gray-200';
+              } else if (isDebt) {
+                const subRemaining = subBudgeted - subSpent;
+                subBarColor = 'bg-[#A78BFA]';
+                subStatusColor = 'text-[#7C3AED]';
+                subStatusText = `${formatCurrency(subRemaining)} LEFT TO PAY`;
+              } else if (isFund) {
+                const subRemaining = currentBalance;
+                subBarColor = 'bg-[#60A5FA]';
+                if (subRemaining < 0) {
+                  subStatusColor = 'text-[#EF767A]';
+                  subStatusText = `${formatCurrency(Math.abs(subRemaining))} OVERDRAWN`;
+                } else {
+                  subStatusColor = 'text-[#60A5FA]';
+                  subStatusText = `${formatCurrency(subRemaining)} AVAILABLE`;
+                }
+              } else {
+                const subRemaining = subBudgeted - subSpent;
+                if (subRemaining < 0) {
+                  subStatusColor = 'text-[#EF767A]';
+                  subBarColor = 'bg-[#EF767A]';
+                  subStatusText = `${formatCurrency(Math.abs(subRemaining))} OVER BUDGET`;
+                } else {
+                  subStatusText = `${formatCurrency(subRemaining)} REMAINING`;
+                  if (subProgress > 75) {
+                      subStatusColor = 'text-[#FFB347]';
+                      subBarColor = 'bg-[#FFB347]';
+                  }
+                }
+              }
 
-      <div className="flex flex-1 flex-col items-center justify-center">
-        <span className="font-montserrat text-[12px] font-bold text-[#4B5563]">NET CASH FLOW</span>
-        <span className={`mt-1 font-montserrat text-[29px] font-bold ${flowColor}`}>
-          {netCashFlow >= 0 ? '+' : ''}{formatCurrency(netCashFlow)}
-        </span>
-        <span className="font-montserrat text-[13px] font-normal text-[#4B5563]">
-          {formatCurrency(totalIncome)} In / {formatCurrency(totalSpent)} Out
-        </span>
-      </div>
+              return (
+                <div key={sub.id} className={`relative w-full border-t border-gray-100 py-4 first:border-t-0 ${isDeduction ? 'opacity-70' : ''}`}>
+                  <button
+                    className="absolute inset-0 z-10 w-full cursor-pointer opacity-0"
+                    onClick={() => !isDeduction && onOpenTransactionDetails({ type: 'subcategory', id: sub.id, name: sub.name })}
+                    title={isDeduction ? "Deductions are automatic" : "View transactions"}
+                  />
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <span className={`font-montserrat text-[15px] font-bold ${isDeduction ? 'text-gray-500' : 'text-[#4B5563]'}`}>{sub.name}</span>
+                      {isDebt && <StatusPill type="debt" />}
+                      {isFund && <StatusPill type="fund" />}
+                      {isDeduction && (
+                        <div className="ml-3 flex items-center justify-center rounded-xl bg-gray-100 px-3 py-1">
+                          <span className="font-montserrat text-[10px] font-bold text-gray-500">PAYSTUB</span>
+                        </div>
+                      )}
+                    </div>
+                    <span className={`font-montserrat text-[13px] font-bold ${subStatusColor}`}>{subStatusText}</span>
+                  </div>
+
+                  <div className="mt-1 flex justify-between font-montserrat text-[13px] font-normal text-[#4B5563]">
+                    {isDeduction ? (
+                        <span className="italic text-gray-400">Value: {formatCurrency(subBudgeted)}</span>
+                    ) : (
+                        <>
+                            <span>{formatCurrency(subSpent)} {isDebt ? 'Paid' : 'Spent'} {isFund ? ` | ${formatCurrency(subBudgeted)} Added` : ''}</span>
+                            <span>{isDebt ? 'Monthly Payment' : 'Budgeted'}: {formatCurrency(subBudgeted)}</span>
+                        </>
+                    )}
+                  </div>
+
+                  {!isDeduction && (
+                    <div className="mt-3 h-[8px] w-full rounded-full bg-[#E5E7EB]">
+                      <div className={`h-[8px] rounded-full ${subBarColor}`} style={{ width: `${Math.min(subProgress, 100)}%` }} />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

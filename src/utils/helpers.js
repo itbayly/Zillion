@@ -133,3 +133,110 @@ export const exportTransactionsToCSV = (
     document.body.removeChild(link);
   }
 };
+
+// --- PAYDAY CALCULATOR ---
+export const calculatePaydayStats = (config) => {
+  if (!config) return null;
+  const { frequency, amount, anchorDate, semiMonth1, semiMonth2, monthlyDay, adjustment } = config;
+  const numAmount = parseFloat(amount) || 0;
+  const today = new Date();
+  today.setHours(0,0,0,0); // Normalize today
+  
+  const currentMonth = today.getMonth();
+  const currentYear = today.getFullYear();
+  
+  let payDates = [];
+  let nextPayDate = null;
+
+  // Helper to adjust for weekends
+  const adjustDate = (date) => {
+    const d = new Date(date);
+    const day = d.getDay(); // 0=Sun, 6=Sat
+    if (adjustment === 'before') {
+      if (day === 0) d.setDate(d.getDate() - 2); // Sun -> Fri
+      if (day === 6) d.setDate(d.getDate() - 1); // Sat -> Fri
+    } else if (adjustment === 'after') {
+      if (day === 0) d.setDate(d.getDate() + 1); // Sun -> Mon
+      if (day === 6) d.setDate(d.getDate() + 2); // Sat -> Mon
+    }
+    return d;
+  };
+
+  if (frequency === 'weekly' || frequency === 'biweekly' || frequency === 'fourweeks') {
+    if (!anchorDate) return { nextPayDayStr: 'Unknown', monthlyTotal: 0, payCheckCount: 0, nextDateObj: null };
+    
+    const interval = frequency === 'weekly' ? 7 : frequency === 'biweekly' ? 14 : 28;
+    const parts = anchorDate.split('-');
+    if (parts.length !== 3) return { nextPayDayStr: 'Invalid Date', monthlyTotal: 0, payCheckCount: 0, nextDateObj: null };
+    
+    let iterDate = new Date(anchorDate + 'T12:00:00'); 
+    
+    // Catch up to current year/month
+    let loops = 0;
+    const lookahead = new Date(currentYear, currentMonth + 2, 1); // Limit lookahead
+    while (iterDate < lookahead && loops < 1000) {
+      const adjusted = adjustDate(new Date(iterDate));
+      
+      // If it's in current month, count it
+      if (iterDate.getMonth() === currentMonth && iterDate.getFullYear() === currentYear) {
+        payDates.push(adjusted);
+      }
+      
+      // If it's today or future, and we haven't found next yet, set it
+      // We compare using the adjusted date to allow for "Today is payday"
+      if (!nextPayDate) {
+        const todayTime = today.getTime();
+        const adjTime = adjusted.setHours(0,0,0,0);
+        if (adjTime >= todayTime) {
+           nextPayDate = adjusted;
+        }
+      }
+      
+      iterDate.setDate(iterDate.getDate() + interval);
+      loops++;
+    }
+
+  } else if (frequency === 'semimonthly') {
+    const d1 = parseInt(semiMonth1) || 1;
+    const d2 = semiMonth2 === 'last' ? new Date(currentYear, currentMonth + 1, 0).getDate() : (parseInt(semiMonth2) || 15);
+    
+    // Check this month and next month to find next payday
+    const datesToCheck = [
+      new Date(currentYear, currentMonth, d1),
+      new Date(currentYear, currentMonth, d2),
+      new Date(currentYear, currentMonth + 1, d1)
+    ];
+    
+    const adjustedDates = datesToCheck.map(d => adjustDate(d));
+    
+    // Current Month Stats
+    adjustedDates.slice(0, 2).forEach(d => {
+       if (d.getMonth() === currentMonth) payDates.push(d);
+    });
+    
+    // Find next
+    nextPayDate = adjustedDates.find(d => d.setHours(0,0,0,0) >= today.getTime());
+    
+  } else if (frequency === 'monthly') {
+    const d = monthlyDay === 'last' ? new Date(currentYear, currentMonth + 1, 0).getDate() : (parseInt(monthlyDay) || 1);
+    
+    const thisMonthDate = new Date(currentYear, currentMonth, d);
+    const nextMonthDate = new Date(currentYear, currentMonth + 1, d);
+    
+    const adjThis = adjustDate(thisMonthDate);
+    const adjNext = adjustDate(nextMonthDate);
+    
+    if (adjThis.getMonth() === currentMonth) payDates.push(adjThis);
+    
+    nextPayDate = adjThis.setHours(0,0,0,0) >= today.getTime() ? adjThis : adjNext;
+  }
+
+  const totalMonthlyIncome = payDates.length * numAmount;
+  
+  return {
+    nextPayDayStr: nextPayDate ? nextPayDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }) : 'Unknown',
+    nextDateObj: nextPayDate,
+    monthlyTotal: totalMonthlyIncome,
+    payCheckCount: payDates.length
+  };
+};

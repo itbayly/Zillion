@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ChevronLeft, ArrowRight, Trash2, Edit3 } from 'lucide-react';
 import { formatCurrency } from '../../utils/helpers';
-import { WizardTextInput } from '../../components/ui/FormInputs';
+import { WizardTextInput, WizardCurrencyInput } from '../../components/ui/FormInputs'; // Updated Import
 import { AddBankAccountModal } from '../../components/modals/AccountModals';
 
 // Step 2
@@ -61,7 +61,8 @@ export function WizardStep1b_MainSavingsAccount({ budgetData, onAccountsChange, 
         <WizardTextInput label="Account Nickname" id="nickname" value={nickname} onChange={e => setNickname(e.target.value)} placeholder="e.g., Savings" />
         <WizardTextInput label="Bank Name" id="bankName" value={bankName} onChange={e => setBankName(e.target.value)} placeholder="e.g., Chase" />
         <WizardTextInput label="Last 4 Digits" id="lastFour" value={lastFour} onChange={e => setLastFour(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="####" />
-        <WizardTextInput label="Current Balance" id="balance" value={balance} onChange={e => setBalance(e.target.value)} placeholder="0.00" type="number" />
+        {/* UPDATED: Use Currency Input */}
+        <WizardCurrencyInput label="Current Balance" id="balance" value={balance} onChange={setBalance} />
       </div>
       <div className="flex justify-between pt-8 mt-8 border-t max-w-md mx-auto">
         <button type="button" onClick={onBack} className="inline-flex items-center rounded-md border border-gray-300 bg-white px-10 py-2 text-sm font-bold text-[#3DDC97] shadow-sm hover:bg-gray-50">BACK</button>
@@ -103,7 +104,8 @@ export function WizardStep1c_DefaultAccount({ budgetData, onAccountsChange, onSe
         <WizardTextInput label="Account Nickname" id="nickname" value={nickname} onChange={e => setNickname(e.target.value)} placeholder="e.g., Spending" />
         <WizardTextInput label="Bank Name" id="bankName" value={bankName} onChange={e => setBankName(e.target.value)} placeholder="e.g., Chase" />
         <WizardTextInput label="Last 4 Digits" id="lastFour" value={lastFour} onChange={e => setLastFour(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="####" />
-        <WizardTextInput label="Current Balance" id="balance" value={balance} onChange={e => setBalance(e.target.value)} placeholder="0.00" type="number" />
+        {/* UPDATED: Use Currency Input */}
+        <WizardCurrencyInput label="Current Balance" id="balance" value={balance} onChange={setBalance} />
       </div>
       <div className="flex justify-between pt-8 mt-8 border-t max-w-md mx-auto">
         <button type="button" onClick={onBack} className="inline-flex items-center rounded-md border border-gray-300 bg-white px-10 py-2 text-sm font-bold text-[#3DDC97] shadow-sm hover:bg-gray-50">BACK</button>
@@ -146,7 +148,8 @@ export function WizardStep1d_SinkingFundAccount({ budgetData, onAccountsChange, 
         <WizardTextInput label="Account Nickname" id="nickname" value={nickname} onChange={e => setNickname(e.target.value)} placeholder="e.g., Sinking Fund" />
         <WizardTextInput label="Bank Name" id="bankName" value={bankName} onChange={e => setBankName(e.target.value)} placeholder="e.g., Ally" />
         <WizardTextInput label="Last 4 Digits" id="lastFour" value={lastFour} onChange={e => setLastFour(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="####" />
-        <WizardTextInput label="Current Balance" id="balance" value={balance} onChange={e => setBalance(e.target.value)} placeholder="0.00" type="number" />
+        {/* UPDATED: Use Currency Input */}
+        <WizardCurrencyInput label="Current Balance" id="balance" value={balance} onChange={setBalance} />
       </div>
       <div className="flex justify-between pt-8 mt-8 border-t max-w-md mx-auto">
         <button type="button" onClick={onBack} className="inline-flex items-center rounded-md border border-gray-300 bg-white px-10 py-2 text-sm font-bold text-[#3DDC97] shadow-sm hover:bg-gray-50">BACK</button>
@@ -160,20 +163,8 @@ export function WizardStep1d_SinkingFundAccount({ budgetData, onAccountsChange, 
 export function WizardStep1e_AccountSummary({ budgetData, onAccountsChange, onSetDefaultAccount, onMainSavingsAccountChange, onSavingsAccountChange, onNext, onBack }) {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
-  const assignedAccounts = useMemo(() => {
-    const defaultAcc = budgetData.bankAccounts.find(acc => acc.id === budgetData.defaultAccountId);
-    const mainSavingsAcc = budgetData.bankAccounts.find(acc => acc.id === budgetData.mainSavingsAccountId);
-    const sinkingFundAcc = budgetData.bankAccounts.find(acc => acc.id === budgetData.savingsAccountId);
-
-    const accounts = [];
-    if (mainSavingsAcc) accounts.push({ ...mainSavingsAcc, role: 'mainSavings' });
-    if (defaultAcc && defaultAcc.id !== mainSavingsAcc?.id) accounts.push({ ...defaultAcc, role: 'default' });
-    if (sinkingFundAcc && sinkingFundAcc.id !== mainSavingsAcc?.id && sinkingFundAcc.id !== defaultAcc?.id) accounts.push({ ...sinkingFundAcc, role: 'sinkingFund' });
-
-    const assignedIds = new Set(accounts.map(acc => acc.id));
-    const unassignedAccounts = budgetData.bankAccounts.filter(acc => !assignedIds.has(acc.id));
-    return [...accounts, ...unassignedAccounts];
-  }, [budgetData.bankAccounts, budgetData.defaultAccountId, budgetData.mainSavingsAccountId, budgetData.savingsAccountId]);
+  // UPDATED: Use bankAccounts directly to prevent re-ordering when radio buttons change
+  const displayAccounts = budgetData.bankAccounts;
 
   const handleAddAccount = (newAccount) => onAccountsChange([...budgetData.bankAccounts, newAccount]);
 
@@ -204,12 +195,12 @@ export function WizardStep1e_AccountSummary({ budgetData, onAccountsChange, onSe
           <table className="min-w-full divide-y divide-gray-200">
             <thead><tr><th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Account Name</th><th className="px-6 py-3 text-center text-xs font-medium uppercase tracking-wider text-gray-500">Savings Account</th><th className="px-6 py-3 text-center text-xs font-medium uppercase tracking-wider text-gray-500">Spending Account</th><th className="px-6 py-3 text-center text-xs font-medium uppercase tracking-wider text-gray-500">Sinking Funds</th><th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">Balance</th><th className="relative px-6 py-3"></th></tr></thead>
             <tbody className="divide-y divide-gray-200 bg-white">
-              {assignedAccounts.map((account) => (
+              {displayAccounts.map((account) => (
                 <tr key={account.id}>
                   <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">{account.name} <span className="text-gray-500">({account.lastFour})</span></td>
-                  <td className="whitespace-nowrap px-6 py-4 text-center text-sm text-gray-500"><input type="radio" name={`role-${account.id}`} checked={budgetData.mainSavingsAccountId === account.id} onChange={() => handleRoleChange(account.id, 'mainSavings')} className="h-4 w-4 text-[#3DDC97]" /></td>
-                  <td className="whitespace-nowrap px-6 py-4 text-center text-sm text-gray-500"><input type="radio" name={`role-${account.id}`} checked={budgetData.defaultAccountId === account.id} onChange={() => handleRoleChange(account.id, 'default')} className="h-4 w-4 text-[#3DDC97]" /></td>
-                  <td className="whitespace-nowrap px-6 py-4 text-center text-sm text-gray-500"><input type="radio" name={`role-${account.id}`} checked={budgetData.savingsAccountId === account.id} onChange={() => handleRoleChange(account.id, 'sinkingFund')} className="h-4 w-4 text-[#3DDC97]" /></td>
+                  <td className="whitespace-nowrap px-6 py-4 text-center text-sm text-gray-500"><input type="radio" name="mainSavingsRole" checked={budgetData.mainSavingsAccountId === account.id} onChange={() => handleRoleChange(account.id, 'mainSavings')} className="h-4 w-4 text-[#3DDC97]" /></td>
+                  <td className="whitespace-nowrap px-6 py-4 text-center text-sm text-gray-500"><input type="radio" name="defaultRole" checked={budgetData.defaultAccountId === account.id} onChange={() => handleRoleChange(account.id, 'default')} className="h-4 w-4 text-[#3DDC97]" /></td>
+                  <td className="whitespace-nowrap px-6 py-4 text-center text-sm text-gray-500"><input type="radio" name="sinkingFundRole" checked={budgetData.savingsAccountId === account.id} onChange={() => handleRoleChange(account.id, 'sinkingFund')} className="h-4 w-4 text-[#3DDC97]" /></td>
                   <td className="whitespace-nowrap px-6 py-4 text-right text-sm text-gray-500">{formatCurrency(account.balance)}</td>
                   <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium"><button onClick={() => handleDeleteAccount(account.id)} className="text-red-600 hover:text-red-900"><Trash2 className="h-5 w-5" /></button></td>
                 </tr>

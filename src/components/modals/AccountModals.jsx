@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, DollarSign } from 'lucide-react';
+import { WizardCurrencyInput } from '../ui/FormInputs'; // Import the new input
 
-// Reusable Form Component
+// Reusable Form Component (for Dashboard)
 export function AccountForm({ onAddAccount }) {
   const [name, setName] = useState('');
   const [balance, setBalance] = useState('');
@@ -202,14 +203,21 @@ export function AddBankAccountModal({ isOpen, onClose, onAddAccount }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" onClick={onClose}>
-       {/* Inner content similar to above, simplified for brevity in this paste since it was in your main file */}
        <div className="relative w-full max-w-sm rounded-lg bg-white p-6 shadow-xl" onClick={e => e.stopPropagation()}>
           <h3 className="text-xl font-semibold text-gray-800 mb-4">ADD NEW BANK ACCOUNT</h3>
           <div className="space-y-4">
              <input type="text" className="w-full border p-2 rounded" placeholder="Nickname" value={nickname} onChange={e => setNickname(e.target.value)} />
              <input type="text" className="w-full border p-2 rounded" placeholder="Bank Name" value={bankName} onChange={e => setBankName(e.target.value)} />
              <input type="text" className="w-full border p-2 rounded" placeholder="Last 4" value={lastFour} onChange={e => setLastFour(e.target.value)} />
-             <input type="number" className="w-full border p-2 rounded" placeholder="Balance" value={balance} onChange={e => setBalance(e.target.value)} />
+             
+             {/* UPDATED: Use Currency Input */}
+             <WizardCurrencyInput 
+               label="Current Balance"
+               id="add-balance"
+               value={balance}
+               onChange={setBalance}
+               placeholder="0.00"
+             />
           </div>
           <div className="mt-6 flex justify-end gap-2">
              <button onClick={onClose} className="px-4 py-2 border rounded">Cancel</button>

@@ -13,6 +13,7 @@ import {
   Cell,
 } from 'recharts';
 import { formatCurrency } from '../../utils/helpers';
+import { StandardCurrencyInput } from '../../components/ui/FormInputs'; // Updated Import
 
 export default function ReportsDashboard({
   categories,
@@ -35,16 +36,14 @@ export default function ReportsDashboard({
     setGoal(savingsGoal === 0 ? '' : savingsGoal);
   }, [income, savingsGoal]);
 
-  const handleFocus = (e) => e.target.select();
-
-  const handleIncomeBlur = (source, value) => {
+  const handleIncomeChangeInternal = (source, value) => {
     const numericValue = parseFloat(value) || 0;
     if (source === 'source1') setIncome1(numericValue === 0 ? '' : numericValue);
     if (source === 'source2') setIncome2(numericValue === 0 ? '' : numericValue);
     onIncomeChange(source, numericValue);
   };
 
-  const handleSavingsBlur = (value) => {
+  const handleSavingsChangeInternal = (value) => {
     const numericValue = parseFloat(value) || 0;
     setGoal(numericValue === 0 ? '' : numericValue);
     onSavingsChange(numericValue);
@@ -101,24 +100,15 @@ export default function ReportsDashboard({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-700">Your Income</label>
-            <div className="relative mt-1">
-              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"><DollarSign className="h-5 w-5 text-gray-400" /></div>
-              <input type="number" value={income1} onChange={(e) => setIncome1(e.target.value)} onFocus={handleFocus} onBlur={(e) => handleIncomeBlur('source1', e.target.value)} className="block w-full rounded-md border-gray-300 pl-10 shadow-sm" placeholder="0.00" />
-            </div>
+            <StandardCurrencyInput value={income1} onChange={(val) => handleIncomeChangeInternal('source1', val)} placeholder="0.00" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">Partner's Income</label>
-            <div className="relative mt-1">
-              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"><DollarSign className="h-5 w-5 text-gray-400" /></div>
-              <input type="number" value={income2} onChange={(e) => setIncome2(e.target.value)} onFocus={handleFocus} onBlur={(e) => handleIncomeBlur('source2', e.target.value)} className="block w-full rounded-md border-gray-300 pl-10 shadow-sm" placeholder="0.00" />
-            </div>
+            <StandardCurrencyInput value={income2} onChange={(val) => handleIncomeChangeInternal('source2', val)} placeholder="0.00" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">Monthly Savings Goal</label>
-            <div className="relative mt-1">
-              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"><Target className="h-5 w-5 text-gray-400" /></div>
-              <input type="number" value={goal} onChange={(e) => setGoal(e.target.value)} onFocus={handleFocus} onBlur={(e) => handleSavingsBlur(e.target.value)} className="block w-full rounded-md border-gray-300 pl-10 shadow-sm" placeholder="0.00" />
-            </div>
+            <StandardCurrencyInput value={goal} onChange={handleSavingsChangeInternal} placeholder="0.00" />
           </div>
         </div>
       </div>
