@@ -1,37 +1,135 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ChevronLeft, ArrowRight, Trash2, Edit3 } from 'lucide-react';
+import { ArrowRight, Trash2, DollarSign } from 'lucide-react';
 import { formatCurrency } from '../../utils/helpers';
-import { WizardTextInput, WizardCurrencyInput } from '../../components/ui/FormInputs'; // Updated Import
 import { AddBankAccountModal } from '../../components/modals/AccountModals';
+import { Button } from '../../components/ui/Button';
+import { InputField } from '../../components/ui/InputField';
+import { AmbientBackground } from '../../components/ui/SharedUI';
+import { ThemeToggle } from '../../components/ui/ThemeToggle';
+
+// --- Internal Helper Component for consistent layout ---
+const BankSetupStep = ({ title, description, nickname, setNickname, bankName, setBankName, lastFour, setLastFour, balance, setBalance, onBack, onNext, isNextDisabled, theme, toggleTheme }) => (
+  <div className={`
+    min-h-screen w-full flex items-center justify-center p-4 relative transition-colors duration-1000
+    ${theme === 'dark' ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-800'}
+  `}>
+    <AmbientBackground theme={theme} />
+    <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
+
+    <div className={`
+      w-full max-w-md p-8 sm:p-10 rounded-3xl transition-all duration-500
+      ${theme === 'dark'
+        ? 'bg-slate-900/40 border border-white/10 shadow-[0_0_40px_-10px_rgba(16,185,129,0.15)] backdrop-blur-xl'
+        : 'bg-white/70 border border-white/60 shadow-2xl shadow-slate-200/50 backdrop-blur-md'
+      }
+      animate-in fade-in slide-in-from-right-8 duration-500
+    `}>
+      <div className="text-center mb-8">
+        <h2 className="text-sm font-bold tracking-[0.2em] text-zillion-400 uppercase mb-2 transition-colors duration-300">ZILLION</h2>
+        <h1 className={`text-2xl font-bold transition-colors duration-300 ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>{title}</h1>
+      </div>
+
+      <p className={`text-center text-sm mb-10 max-w-xs mx-auto transition-colors duration-300 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>
+        {description}
+      </p>
+
+      <div className="space-y-5">
+        <InputField
+          label="Account Nickname"
+          value={nickname}
+          onChange={(e) => setNickname(e.target.value)}
+          placeholder="e.g., Savings"
+        />
+        <InputField
+          label="Bank Name"
+          value={bankName}
+          onChange={(e) => setBankName(e.target.value)}
+          placeholder="e.g., Chase"
+        />
+        <InputField
+          label="Last 4 Digits"
+          value={lastFour}
+          onChange={(e) => setLastFour(e.target.value.replace(/\D/g, '').slice(0, 4))}
+          placeholder="####"
+          maxLength={4}
+        />
+        <InputField
+          label="Current Balance"
+          value={balance}
+          onChange={(e) => setBalance(e.target.value)}
+          placeholder="0.00"
+          icon={<DollarSign className="w-4 h-4" />}
+          type="number"
+        />
+      </div>
+
+      <div className={`my-8 border-t ${theme === 'dark' ? 'border-slate-700' : 'border-slate-200'}`}></div>
+
+      <div className="flex justify-between items-center gap-4">
+        <Button 
+          variant="outline" 
+          onClick={onBack} 
+          className="px-6 uppercase text-xs font-bold tracking-wide border-zillion-400/60 text-zillion-500 hover:bg-zillion-50 dark:hover:bg-zillion-400/10 dark:text-zillion-400"
+        >
+          BACK
+        </Button>
+        <Button 
+          variant="primary" 
+          onClick={onNext} 
+          disabled={isNextDisabled} 
+          className="px-10 uppercase text-xs font-bold tracking-wide"
+        >
+          NEXT
+        </Button>
+      </div>
+    </div>
+  </div>
+);
 
 // Step 2
-export function WizardStep1a_AccountsInfo({ onNext, onBack }) {
+export function WizardStep1a_AccountsInfo({ onNext, onBack, theme, toggleTheme }) {
   return (
-    <div className="rounded-lg bg-white p-6 shadow-md sm:p-8 max-w-2xl mx-auto">
-      <div className="mx-auto max-w-lg text-center">
-        <h2 className="text-2xl font-bold uppercase text-[#3DDC97] tracking-widest">ZILLION</h2>
-        <h3 className="mt-4 text-3xl font-semibold text-gray-800">Let's Get Your Bank Accounts Set Up</h3>
-      </div>
-      <div className="mt-8 text-gray-700 space-y-5 text-base">
-        <p>This app uses a simple three-account method to give every dollar a clear job. If you do not have three bank accounts yet, we recommend pausing here to open any you are missing.</p>
-        <p>We will help you assign a role to three of your bank accounts:</p>
-        <ul className="list-decimal pl-8 space-y-2">
-          <li>A central <strong className="text-[#3DDC97]">Savings</strong> account</li>
-          <li>A <strong className="text-[#3DDC97]">Spending</strong> account for your monthly spending</li>
-          <li>A <strong className="text-[#3DDC97]">Sinking Fund</strong> account for your goals</li>
-        </ul>
-        <p className="pt-4">When you have your three bank accounts ready, click "Next".</p>
-      </div>
-      <div className="flex justify-between pt-8 mt-6 border-t">
-        <button type="button" onClick={onBack} className="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"><ChevronLeft className="-ml-1 mr-2 h-5 w-5" /> Back</button>
-        <button type="button" onClick={onNext} className="inline-flex items-center rounded-md border border-transparent bg-[#3DDC97] px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-emerald-600">Next <ArrowRight className="ml-2 h-5 w-5" /></button>
+    <div className={`
+      min-h-screen w-full flex items-center justify-center p-4 relative transition-colors duration-1000
+      ${theme === 'dark' ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-800'}
+    `}>
+      <AmbientBackground theme={theme} />
+      <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
+
+      <div className={`
+        w-full max-w-md p-8 sm:p-10 rounded-3xl transition-all duration-500
+        ${theme === 'dark'
+          ? 'bg-slate-900/40 border border-white/10 shadow-[0_0_40px_-10px_rgba(16,185,129,0.15)] backdrop-blur-xl'
+          : 'bg-white/70 border border-white/60 shadow-2xl shadow-slate-200/50 backdrop-blur-md'
+        }
+        animate-in fade-in slide-in-from-right-8 duration-500
+      `}>
+        <div className="text-center mb-8">
+          <h2 className="text-sm font-bold tracking-[0.2em] text-zillion-400 uppercase mb-2 transition-colors duration-300">ZILLION</h2>
+          <h1 className={`text-2xl font-bold transition-colors duration-300 ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>Let's Get Your Bank Accounts Set Up</h1>
+        </div>
+        <div className={`text-sm space-y-4 mb-8 transition-colors duration-300 ${theme === 'dark' ? 'text-slate-300' : 'text-slate-600'}`}>
+          <p>This app uses a simple three-account method to give every dollar a clear job. If you do not have three bank accounts yet, we recommend pausing here to open any you are missing.</p>
+          <p>We will help you assign a role to three of your bank accounts:</p>
+          <ol className="list-decimal list-inside space-y-2 ml-2">
+            <li>A central <span className="text-zillion-400 font-bold">Savings</span> account</li>
+            <li>A <span className="text-zillion-400 font-bold">Spending</span> account for your monthly spending</li>
+            <li>A <span className="text-zillion-400 font-bold">Sinking Fund</span> account for your goals</li>
+          </ol>
+          <p className="mt-4">When you have your three bank accounts ready, click "Next".</p>
+        </div>
+        <div className={`my-8 border-t ${theme === 'dark' ? 'border-slate-700' : 'border-slate-200'}`}></div>
+        <div className="flex justify-between">
+           <Button variant="outline" onClick={onBack} className="uppercase font-bold text-xs border-zillion-400/60 text-zillion-500 hover:bg-zillion-50 dark:hover:bg-zillion-400/10 dark:text-zillion-400">Back</Button>
+           <Button variant="primary" onClick={onNext} rightIcon={<ArrowRight size={16} />} className="uppercase font-bold text-xs">Next</Button>
+        </div>
       </div>
     </div>
   );
 }
 
 // Step 3
-export function WizardStep1b_MainSavingsAccount({ budgetData, onAccountsChange, onMainSavingsAccountChange, onNext, onBack }) {
+export function WizardStep1b_MainSavingsAccount({ budgetData, onAccountsChange, onMainSavingsAccountChange, onNext, onBack, theme, toggleTheme }) {
   const [nickname, setNickname] = useState(''); const [bankName, setBankName] = useState(''); const [lastFour, setLastFour] = useState(''); const [balance, setBalance] = useState(''); const [existingAccountId, setExistingAccountId] = useState(null);
 
   useEffect(() => {
@@ -51,29 +149,21 @@ export function WizardStep1b_MainSavingsAccount({ budgetData, onAccountsChange, 
   const isNextDisabled = !nickname || !bankName || !lastFour || balance === '';
 
   return (
-    <div className="rounded-lg bg-white p-6 shadow-md sm:p-8 max-w-2xl mx-auto">
-      <div className="mx-auto max-w-lg text-center">
-        <h2 className="text-2xl font-bold uppercase text-[#3DDC97] tracking-widest">ZILLION</h2>
-        <h3 className="mt-4 text-3xl font-semibold text-gray-800">The "Savings" Account</h3>
-        <p className="mt-6 text-sm text-gray-700">This account will be your financial hub. All your paychecks should be deposited here.</p>
-      </div>
-      <div className="mt-8 max-w-md mx-auto space-y-4">
-        <WizardTextInput label="Account Nickname" id="nickname" value={nickname} onChange={e => setNickname(e.target.value)} placeholder="e.g., Savings" />
-        <WizardTextInput label="Bank Name" id="bankName" value={bankName} onChange={e => setBankName(e.target.value)} placeholder="e.g., Chase" />
-        <WizardTextInput label="Last 4 Digits" id="lastFour" value={lastFour} onChange={e => setLastFour(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="####" />
-        {/* UPDATED: Use Currency Input */}
-        <WizardCurrencyInput label="Current Balance" id="balance" value={balance} onChange={setBalance} />
-      </div>
-      <div className="flex justify-between pt-8 mt-8 border-t max-w-md mx-auto">
-        <button type="button" onClick={onBack} className="inline-flex items-center rounded-md border border-gray-300 bg-white px-10 py-2 text-sm font-bold text-[#3DDC97] shadow-sm hover:bg-gray-50">BACK</button>
-        <button type="button" onClick={handleNext} disabled={isNextDisabled} className="inline-flex items-center rounded-md border border-transparent bg-[#3DDC97] px-10 py-2 text-sm font-bold text-white shadow-sm hover:bg-emerald-600 disabled:bg-gray-300">NEXT</button>
-      </div>
-    </div>
+    <BankSetupStep
+      title='The "Savings" Account'
+      description="This account will be your financial hub. All your paychecks should be deposited here."
+      nickname={nickname} setNickname={setNickname}
+      bankName={bankName} setBankName={setBankName}
+      lastFour={lastFour} setLastFour={setLastFour}
+      balance={balance} setBalance={setBalance}
+      onBack={onBack} onNext={handleNext} isNextDisabled={isNextDisabled}
+      theme={theme} toggleTheme={toggleTheme}
+    />
   );
 }
 
 // Step 4
-export function WizardStep1c_DefaultAccount({ budgetData, onAccountsChange, onSetDefaultAccount, onNext, onBack }) {
+export function WizardStep1c_DefaultAccount({ budgetData, onAccountsChange, onSetDefaultAccount, onNext, onBack, theme, toggleTheme }) {
   const [nickname, setNickname] = useState(''); const [bankName, setBankName] = useState(''); const [lastFour, setLastFour] = useState(''); const [balance, setBalance] = useState(''); const [existingAccountId, setExistingAccountId] = useState(null);
 
   useEffect(() => {
@@ -94,29 +184,21 @@ export function WizardStep1c_DefaultAccount({ budgetData, onAccountsChange, onSe
   const isNextDisabled = !nickname || !bankName || !lastFour || balance === '';
 
   return (
-    <div className="rounded-lg bg-white p-6 shadow-md sm:p-8 max-w-2xl mx-auto">
-      <div className="mx-auto max-w-lg text-center">
-        <h2 className="text-2xl font-bold uppercase text-[#3DDC97] tracking-widest">ZILLION</h2>
-        <h3 className="mt-4 text-3xl font-semibold text-gray-800">The "Spending" Account</h3>
-        <p className="mt-6 text-sm text-gray-700">This is your monthly spending account. It pays for fixed expenses like groceries and gas.</p>
-      </div>
-      <div className="mt-8 max-w-md mx-auto space-y-4">
-        <WizardTextInput label="Account Nickname" id="nickname" value={nickname} onChange={e => setNickname(e.target.value)} placeholder="e.g., Spending" />
-        <WizardTextInput label="Bank Name" id="bankName" value={bankName} onChange={e => setBankName(e.target.value)} placeholder="e.g., Chase" />
-        <WizardTextInput label="Last 4 Digits" id="lastFour" value={lastFour} onChange={e => setLastFour(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="####" />
-        {/* UPDATED: Use Currency Input */}
-        <WizardCurrencyInput label="Current Balance" id="balance" value={balance} onChange={setBalance} />
-      </div>
-      <div className="flex justify-between pt-8 mt-8 border-t max-w-md mx-auto">
-        <button type="button" onClick={onBack} className="inline-flex items-center rounded-md border border-gray-300 bg-white px-10 py-2 text-sm font-bold text-[#3DDC97] shadow-sm hover:bg-gray-50">BACK</button>
-        <button type="button" onClick={handleNext} disabled={isNextDisabled} className="inline-flex items-center rounded-md border border-transparent bg-[#3DDC97] px-10 py-2 text-sm font-bold text-white shadow-sm hover:bg-emerald-600 disabled:bg-gray-300">NEXT</button>
-      </div>
-    </div>
+    <BankSetupStep
+      title='The "Spending" Account'
+      description="This is your monthly spending account. It pays for fixed expenses like groceries and gas."
+      nickname={nickname} setNickname={setNickname}
+      bankName={bankName} setBankName={setBankName}
+      lastFour={lastFour} setLastFour={setLastFour}
+      balance={balance} setBalance={setBalance}
+      onBack={onBack} onNext={handleNext} isNextDisabled={isNextDisabled}
+      theme={theme} toggleTheme={toggleTheme}
+    />
   );
 }
 
 // Step 5
-export function WizardStep1d_SinkingFundAccount({ budgetData, onAccountsChange, onSavingsAccountChange, onNext, onBack }) {
+export function WizardStep1d_SinkingFundAccount({ budgetData, onAccountsChange, onSavingsAccountChange, onNext, onBack, theme, toggleTheme }) {
   const [nickname, setNickname] = useState(''); const [bankName, setBankName] = useState(''); const [lastFour, setLastFour] = useState(''); const [balance, setBalance] = useState(''); const [existingAccountId, setExistingAccountId] = useState(null);
 
   useEffect(() => {
@@ -138,32 +220,22 @@ export function WizardStep1d_SinkingFundAccount({ budgetData, onAccountsChange, 
   const isNextDisabled = !nickname || !bankName || !lastFour || balance === '';
 
   return (
-    <div className="rounded-lg bg-white p-6 shadow-md sm:p-8 max-w-2xl mx-auto">
-      <div className="mx-auto max-w-lg text-center">
-        <h2 className="text-2xl font-bold uppercase text-[#3DDC97] tracking-widest">ZILLION</h2>
-        <h3 className="mt-4 text-3xl font-semibold text-gray-800">The "Sinking Fund" Account</h3>
-        <p className="mt-6 text-sm text-gray-700">This is your account for goals and future expenses (Vacations, Car Repairs, etc.).</p>
-      </div>
-      <div className="mt-8 max-w-md mx-auto space-y-4">
-        <WizardTextInput label="Account Nickname" id="nickname" value={nickname} onChange={e => setNickname(e.target.value)} placeholder="e.g., Sinking Fund" />
-        <WizardTextInput label="Bank Name" id="bankName" value={bankName} onChange={e => setBankName(e.target.value)} placeholder="e.g., Ally" />
-        <WizardTextInput label="Last 4 Digits" id="lastFour" value={lastFour} onChange={e => setLastFour(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="####" />
-        {/* UPDATED: Use Currency Input */}
-        <WizardCurrencyInput label="Current Balance" id="balance" value={balance} onChange={setBalance} />
-      </div>
-      <div className="flex justify-between pt-8 mt-8 border-t max-w-md mx-auto">
-        <button type="button" onClick={onBack} className="inline-flex items-center rounded-md border border-gray-300 bg-white px-10 py-2 text-sm font-bold text-[#3DDC97] shadow-sm hover:bg-gray-50">BACK</button>
-        <button type="button" onClick={handleNext} disabled={isNextDisabled} className="inline-flex items-center rounded-md border border-transparent bg-[#3DDC97] px-10 py-2 text-sm font-bold text-white shadow-sm hover:bg-emerald-600 disabled:bg-gray-300">NEXT</button>
-      </div>
-    </div>
+    <BankSetupStep
+      title='The "Sinking Fund" Account'
+      description="This is your account for goals and future expenses (Vacations, Car Repairs, etc.)."
+      nickname={nickname} setNickname={setNickname}
+      bankName={bankName} setBankName={setBankName}
+      lastFour={lastFour} setLastFour={setLastFour}
+      balance={balance} setBalance={setBalance}
+      onBack={onBack} onNext={handleNext} isNextDisabled={isNextDisabled}
+      theme={theme} toggleTheme={toggleTheme}
+    />
   );
 }
 
-// Step 6
-export function WizardStep1e_AccountSummary({ budgetData, onAccountsChange, onSetDefaultAccount, onMainSavingsAccountChange, onSavingsAccountChange, onNext, onBack }) {
+// Step 6 (Summary)
+export function WizardStep1e_AccountSummary({ budgetData, onAccountsChange, onSetDefaultAccount, onMainSavingsAccountChange, onSavingsAccountChange, onNext, onBack, theme, toggleTheme }) {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-
-  // UPDATED: Use bankAccounts directly to prevent re-ordering when radio buttons change
   const displayAccounts = budgetData.bankAccounts;
 
   const handleAddAccount = (newAccount) => onAccountsChange([...budgetData.bankAccounts, newAccount]);
@@ -183,37 +255,113 @@ export function WizardStep1e_AccountSummary({ budgetData, onAccountsChange, onSe
   };
 
   return (
-    <div className="rounded-lg bg-white p-6 shadow-md sm:p-8 max-w-4xl mx-auto">
+    <div className={`
+      min-h-screen w-full flex items-center justify-center p-4 relative transition-colors duration-1000
+      ${theme === 'dark' ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-800'}
+    `}>
+      <AmbientBackground theme={theme} />
+      <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
       <AddBankAccountModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onAddAccount={handleAddAccount} />
-      <div className="mx-auto max-w-lg text-center">
-        <h2 className="text-2xl font-bold uppercase text-[#3DDC97] tracking-widest">ZILLION</h2>
-        <h3 className="mt-4 text-3xl font-semibold text-gray-800">Bank Accounts</h3>
-        <p className="mt-6 text-sm text-gray-700">Great job. You've set up the three core accounts.</p>
-      </div>
-      <div className="mt-8">
-        <div className="min-w-full overflow-hidden align-middle">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead><tr><th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Account Name</th><th className="px-6 py-3 text-center text-xs font-medium uppercase tracking-wider text-gray-500">Savings Account</th><th className="px-6 py-3 text-center text-xs font-medium uppercase tracking-wider text-gray-500">Spending Account</th><th className="px-6 py-3 text-center text-xs font-medium uppercase tracking-wider text-gray-500">Sinking Funds</th><th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">Balance</th><th className="relative px-6 py-3"></th></tr></thead>
-            <tbody className="divide-y divide-gray-200 bg-white">
+      
+      <div className={`
+        w-full max-w-2xl p-8 sm:p-10 rounded-3xl transition-all duration-500
+        ${theme === 'dark'
+          ? 'bg-slate-900/40 border border-white/10 shadow-[0_0_40px_-10px_rgba(16,185,129,0.15)] backdrop-blur-xl'
+          : 'bg-white/70 border border-white/60 shadow-2xl shadow-slate-200/50 backdrop-blur-md'
+        }
+        animate-in fade-in duration-700
+      `}>
+        <div className="text-center mb-8">
+           <h2 className="text-sm font-bold tracking-[0.2em] text-zillion-400 uppercase mb-2 transition-colors duration-300">ZILLION</h2>
+           <h1 className={`text-2xl font-bold transition-colors duration-300 ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>Bank Accounts</h1>
+           <p className={`text-sm mt-2 transition-colors duration-300 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>Great job. You've set up the three core accounts.</p>
+        </div>
+
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            <thead className={`text-xs uppercase border-b ${theme === 'dark' ? 'text-slate-400 border-slate-700' : 'text-slate-500 border-slate-200'}`}>
+              <tr>
+                <th className="py-3 px-2">Account Name</th>
+                <th className="py-3 px-2 text-center w-24">Savings</th>
+                <th className="py-3 px-2 text-center w-24">Spending</th>
+                <th className="py-3 px-2 text-center w-24">Sinking</th>
+                <th className="py-3 px-2 text-right">Balance</th>
+                <th className="py-3 px-2 w-10"></th>
+              </tr>
+            </thead>
+            <tbody>
               {displayAccounts.map((account) => (
-                <tr key={account.id}>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">{account.name} <span className="text-gray-500">({account.lastFour})</span></td>
-                  <td className="whitespace-nowrap px-6 py-4 text-center text-sm text-gray-500"><input type="radio" name="mainSavingsRole" checked={budgetData.mainSavingsAccountId === account.id} onChange={() => handleRoleChange(account.id, 'mainSavings')} className="h-4 w-4 text-[#3DDC97]" /></td>
-                  <td className="whitespace-nowrap px-6 py-4 text-center text-sm text-gray-500"><input type="radio" name="defaultRole" checked={budgetData.defaultAccountId === account.id} onChange={() => handleRoleChange(account.id, 'default')} className="h-4 w-4 text-[#3DDC97]" /></td>
-                  <td className="whitespace-nowrap px-6 py-4 text-center text-sm text-gray-500"><input type="radio" name="sinkingFundRole" checked={budgetData.savingsAccountId === account.id} onChange={() => handleRoleChange(account.id, 'sinkingFund')} className="h-4 w-4 text-[#3DDC97]" /></td>
-                  <td className="whitespace-nowrap px-6 py-4 text-right text-sm text-gray-500">{formatCurrency(account.balance)}</td>
-                  <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium"><button onClick={() => handleDeleteAccount(account.id)} className="text-red-600 hover:text-red-900"><Trash2 className="h-5 w-5" /></button></td>
+                <tr key={account.id} className={`border-b last:border-0 ${theme === 'dark' ? 'border-slate-800' : 'border-slate-100'}`}>
+                  <td className="py-4 px-2 font-medium">
+                    {account.name} <span className={`font-normal ${theme === 'dark' ? 'text-slate-500' : 'text-slate-400'}`}>({account.lastFour || '----'})</span>
+                  </td>
+                  <td className="py-4 px-2 text-center">
+                    <div className="flex justify-center">
+                      <input type="radio" name="mainSavingsRole" checked={budgetData.mainSavingsAccountId === account.id} onChange={() => handleRoleChange(account.id, 'mainSavings')} className="w-4 h-4 accent-zillion-400" />
+                    </div>
+                  </td>
+                  <td className="py-4 px-2 text-center">
+                    <div className="flex justify-center">
+                      <input type="radio" name="defaultRole" checked={budgetData.defaultAccountId === account.id} onChange={() => handleRoleChange(account.id, 'default')} className="w-4 h-4 accent-zillion-400" />
+                    </div>
+                  </td>
+                  <td className="py-4 px-2 text-center">
+                    <div className="flex justify-center">
+                      <input type="radio" name="sinkingFundRole" checked={budgetData.savingsAccountId === account.id} onChange={() => handleRoleChange(account.id, 'sinkingFund')} className="w-4 h-4 accent-zillion-400" />
+                    </div>
+                  </td>
+                  <td className={`py-4 px-2 text-right font-mono ${theme === 'dark' ? 'text-slate-300' : 'text-slate-700'}`}>{formatCurrency(account.balance)}</td>
+                  <td className="py-4 px-2 text-right">
+                    <button onClick={() => handleDeleteAccount(account.id)} className="text-slate-400 hover:text-red-500 transition-colors"><Trash2 size={16} /></button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      </div>
-      <div className="flex justify-between pt-8 mt-6 border-t">
-        <button type="button" onClick={() => setIsAddModalOpen(true)} className="inline-flex items-center rounded-md border border-[#3DDC97] bg-white px-4 py-2 text-sm font-bold text-[#3DDC97] shadow-sm hover:bg-emerald-50">ADD NEW ACCOUNT</button>
-        <div className="flex space-x-4">
-          <button type="button" onClick={onBack} className="inline-flex items-center rounded-md border border-gray-300 bg-white px-10 py-2 text-sm font-bold text-[#3DDC97] shadow-sm hover:bg-gray-50">BACK</button>
-          <button type="button" onClick={onNext} className="inline-flex items-center rounded-md border border-transparent bg-[#3DDC97] px-10 py-2 text-sm font-bold text-white shadow-sm hover:bg-emerald-600">NEXT: INCOME</button>
+
+        {/* Mobile Card View */}
+        <div className="md:hidden space-y-4">
+           {displayAccounts.map((acc) => (
+             <div key={acc.id} className={`p-4 rounded-lg border ${theme === 'dark' ? 'border-slate-700 bg-slate-800/30' : 'border-slate-200 bg-slate-50'}`}>
+                <div className="flex justify-between items-start mb-3">
+                   <div>
+                      <div className="font-bold text-base">{acc.name}</div>
+                      <div className="text-xs text-slate-500">**** {acc.lastFour}</div>
+                   </div>
+                   <div className={`font-mono text-sm font-bold ${theme === 'dark' ? 'text-slate-300' : 'text-slate-700'}`}>{formatCurrency(acc.balance)}</div>
+                </div>
+                <div className="flex gap-2 text-xs flex-wrap">
+                   <label className={`flex items-center gap-1 px-2 py-1 rounded border ${budgetData.mainSavingsAccountId === acc.id ? 'bg-zillion-500 text-white border-zillion-500' : 'border-slate-300 text-slate-500'}`}>
+                      <input type="radio" name="mainSavingsRole" checked={budgetData.mainSavingsAccountId === acc.id} onChange={() => handleRoleChange(acc.id, 'mainSavings')} className="hidden" />
+                      Savings
+                   </label>
+                   <label className={`flex items-center gap-1 px-2 py-1 rounded border ${budgetData.defaultAccountId === acc.id ? 'bg-zillion-500 text-white border-zillion-500' : 'border-slate-300 text-slate-500'}`}>
+                      <input type="radio" name="defaultRole" checked={budgetData.defaultAccountId === acc.id} onChange={() => handleRoleChange(acc.id, 'default')} className="hidden" />
+                      Spending
+                   </label>
+                   <label className={`flex items-center gap-1 px-2 py-1 rounded border ${budgetData.savingsAccountId === acc.id ? 'bg-zillion-500 text-white border-zillion-500' : 'border-slate-300 text-slate-500'}`}>
+                      <input type="radio" name="sinkingFundRole" checked={budgetData.savingsAccountId === acc.id} onChange={() => handleRoleChange(acc.id, 'sinkingFund')} className="hidden" />
+                      Sinking
+                   </label>
+                </div>
+                <div className="flex justify-end mt-2">
+                   <button onClick={() => handleDeleteAccount(acc.id)} className="text-red-400 text-xs flex items-center"><Trash2 size={12} className="mr-1" /> Remove</button>
+                </div>
+             </div>
+           ))}
+        </div>
+
+        <div className={`my-8 border-t ${theme === 'dark' ? 'border-slate-700' : 'border-slate-200'}`}></div>
+
+        <div className="flex flex-col md:flex-row gap-4 justify-between">
+           <Button variant="outline" onClick={() => setIsAddModalOpen(true)} className="uppercase text-xs font-bold tracking-wide text-zillion-500 border-zillion-400 hover:bg-zillion-50 dark:hover:bg-zillion-900/20">ADD NEW ACCOUNT</Button>
+           
+           <div className="flex gap-3">
+             <Button variant="outline" onClick={onBack} className="uppercase text-xs font-bold tracking-wide border-zillion-400/60 text-zillion-500 hover:bg-zillion-50 dark:hover:bg-zillion-400/10 dark:text-zillion-400">BACK</Button>
+             <Button variant="primary" onClick={onNext} className="uppercase text-xs font-bold tracking-wide bg-zillion-400 text-white hover:bg-zillion-500 px-6">NEXT: INCOME</Button>
+           </div>
         </div>
       </div>
     </div>

@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, Split, Plus } from 'lucide-react';
+import { Split, Plus, Trash2 } from 'lucide-react';
 import { getTodayDate, formatCurrency } from '../../utils/helpers';
-import { StandardCurrencyInput } from '../ui/FormInputs'; // Import new component
+import { GlassCurrencyInput } from '../ui/FormInputs'; 
+import { InputField } from '../ui/InputField';
+import { Button } from '../ui/Button';
+import { ModalWrapper } from '../ui/SharedUI';
 
 export default function AddTransactionModal({
   isOpen,
@@ -12,6 +15,7 @@ export default function AddTransactionModal({
   defaultAccountId,
   savingsAccountId,
   spentOnDebtsMap,
+  theme = 'light'
 }) {
   // --- CORE STATE ---
   const [amount, setAmount] = useState('');
@@ -201,36 +205,34 @@ export default function AddTransactionModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" onClick={onClose}>
-      <form onSubmit={handleSubmit} className="relative w-full max-w-lg rounded-lg bg-white p-6 shadow-xl max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><X className="h-6 w-6" /></button>
-        <h3 className="text-lg font-medium leading-6 text-gray-900 flex-shrink-0">Add New Transaction</h3>
-        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 flex-1 overflow-y-auto pr-2">
+    <ModalWrapper onClose={onClose} theme={theme} title="Add New Transaction">
+      <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+        <div className="flex-1 overflow-y-auto pr-2 space-y-4">
           
-          {/* Amount (Using StandardCurrencyInput) */}
-          <div className="sm:col-span-1">
-            <label htmlFor="tx-amount" className="block text-sm font-medium text-gray-700">Amount</label>
-            <StandardCurrencyInput 
+          <div className="grid grid-cols-2 gap-4">
+            <GlassCurrencyInput 
+              label="Amount" 
               id="tx-amount" 
               value={amount} 
               onChange={setAmount} 
               autoFocus 
+              theme={theme}
             />
-            {amountError && <p className="mt-1 text-sm text-red-600">{amountError}</p>}
+            <InputField 
+              label="Date" 
+              id="tx-date" 
+              type="date" 
+              value={date} 
+              onChange={(e) => setDate(e.target.value)} 
+              theme={theme}
+            />
           </div>
-
-          {/* Date */}
-          <div className="sm:col-span-1">
-            <label htmlFor="tx-date" className="block text-sm font-medium text-gray-700">Date</label>
-            <div className="relative mt-1">
-              <input type="date" id="tx-date" value={date} onChange={(e) => setDate(e.target.value)} className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
-            </div>
-          </div>
+          {amountError && <p className="text-xs text-red-500 -mt-3 mb-2">{amountError}</p>}
 
           {!isSplit && (
-            <div className="sm:col-span-2">
-              <label htmlFor="tx-account" className="block text-sm font-medium text-gray-700">From Account</label>
-              <select id="tx-account" value={accountId} onChange={(e) => setAccountId(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+            <div>
+              <label className={`block mb-2 text-xs font-semibold uppercase tracking-wider ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>From Account</label>
+              <select id="tx-account" value={accountId} onChange={(e) => setAccountId(e.target.value)} className={`w-full p-3 rounded-lg border bg-transparent outline-none ${theme === 'dark' ? 'border-slate-700 text-slate-200 bg-slate-800/50' : 'border-slate-300 text-slate-800'}`}>
                 <option value="">Select an account...</option>
                 {bankAccounts.map((acc) => (
                   <option value={acc.id} key={acc.id}>{acc.name} ({formatCurrency(acc.balance)})</option>
@@ -239,23 +241,23 @@ export default function AddTransactionModal({
             </div>
           )}
 
-          <div className="sm:col-span-2 flex justify-end">
-            <button type="button" onClick={() => setIsSplit(!isSplit)} className={`inline-flex items-center rounded-md px-3 py-1 text-sm font-medium ${isSplit ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-700'}`}>
+          <div className="flex justify-end">
+            <button type="button" onClick={() => setIsSplit(!isSplit)} className={`inline-flex items-center rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-wide transition-colors ${isSplit ? 'bg-zillion-100 text-zillion-600 dark:bg-zillion-900/30 dark:text-zillion-400' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'}`}>
               <Split className="mr-2 h-4 w-4" /> {isSplit ? 'Single Category' : 'Split Transaction'}
             </button>
           </div>
 
           {isSplit ? (
-            <div className="sm:col-span-2 space-y-4">
+            <div className="space-y-4">
               {splits.map((split) => (
-                <div key={split.id} className="rounded-md border border-gray-300 p-3 grid grid-cols-2 gap-3">
+                <div key={split.id} className={`rounded-xl border p-3 grid grid-cols-2 gap-3 ${theme === 'dark' ? 'border-slate-700 bg-slate-800/30' : 'border-slate-200 bg-slate-50'}`}>
                   <div className="col-span-2 flex items-center gap-2">
                     <div className="flex-1">
-                      <label className="text-xs font-medium text-gray-500">Category</label>
-                      <select value={split.subCategoryId} onChange={(e) => handleSplitChange(split.id, 'subCategoryId', e.target.value)} className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                        <option value="">Select a category...</option>
+                      <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Category</label>
+                      <select value={split.subCategoryId} onChange={(e) => handleSplitChange(split.id, 'subCategoryId', e.target.value)} className={`block w-full rounded-md border p-2 text-sm bg-transparent outline-none ${theme === 'dark' ? 'border-slate-600 text-slate-200' : 'border-slate-300'}`}>
+                        <option value="">Select...</option>
                         {categories.map((cat) => (
-                          <optgroup label={cat.name} key={cat.id}>
+                          <optgroup label={cat.name} key={cat.id} className={theme === 'dark' ? 'bg-slate-800' : ''}>
                             {cat.subcategories.map((sub) => {
                               const isDebt = !!sub.linkedDebtId;
                               let isDisabled = false;
@@ -272,47 +274,43 @@ export default function AddTransactionModal({
                       </select>
                     </div>
                     <div className="w-28">
-                      <label className="text-xs font-medium text-gray-500">Amount</label>
-                      {/* Using StandardCurrencyInput for splits */}
-                      <StandardCurrencyInput 
+                      <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Amount</label>
+                      <GlassCurrencyInput 
                         value={split.amount} 
                         onChange={(val) => handleSplitChange(split.id, 'amount', val)} 
                         placeholder="0.00" 
+                        theme={theme}
                       />
                     </div>
-                    <button type="button" onClick={() => removeSplit(split.id)} className={`text-gray-400 hover:text-red-600 self-end mb-1 ${splits.length <= 1 ? 'invisible' : ''}`}><X className="h-5 w-5" /></button>
+                    <button type="button" onClick={() => removeSplit(split.id)} className={`text-slate-400 hover:text-red-500 self-end mb-2 ${splits.length <= 1 ? 'invisible' : ''}`}><Trash2 className="h-5 w-5" /></button>
                   </div>
                   <div className="col-span-2">
-                    <label className="text-xs font-medium text-gray-500">From Account</label>
-                    <select value={split.accountId} onChange={(e) => handleSplitChange(split.id, 'accountId', e.target.value)} className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                      <option value="">Select an account...</option>
+                    <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">From Account</label>
+                    <select value={split.accountId} onChange={(e) => handleSplitChange(split.id, 'accountId', e.target.value)} className={`block w-full rounded-md border p-2 text-sm bg-transparent outline-none ${theme === 'dark' ? 'border-slate-600 text-slate-200' : 'border-slate-300'}`}>
+                      <option value="">Select account...</option>
                       {bankAccounts.map((acc) => <option value={acc.id} key={acc.id}>{acc.name} ({formatCurrency(acc.balance)})</option>)}
                     </select>
-                  </div>
-                  <div className="col-span-2">
-                    <label className="text-xs font-medium text-gray-500">Notes (Optional)</label>
-                    <input type="text" value={split.notes} onChange={(e) => handleSplitChange(split.id, 'notes', e.target.value)} className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="Line item note..." />
                   </div>
                 </div>
               ))}
               <div className="flex justify-between items-center pt-2">
-                <button type="button" onClick={addSplit} className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"><Plus className="mr-2 h-4 w-4" /> Add Line</button>
-                <div className={`text-sm font-medium ${remainingToSplit === 0 ? 'text-green-600' : 'text-red-600'}`}>{formatCurrency(remainingToSplit)} Remaining</div>
+                <Button type="button" variant="outline" onClick={addSplit} icon={<Plus className="w-4 h-4" />} className="text-xs py-2 h-auto">Add Line</Button>
+                <div className={`text-sm font-bold ${remainingToSplit === 0 ? 'text-zillion-500' : 'text-red-500'}`}>{formatCurrency(remainingToSplit)} Remaining</div>
               </div>
             </div>
           ) : (
-            <>
-              <div className="sm:col-span-1">
-                <label htmlFor="tx-main-category" className="block text-sm font-medium text-gray-700">Category</label>
-                <select id="tx-main-category" value={selectedCategoryId} onChange={handleMainCategoryChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                  <option value="">Select a category...</option>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className={`block mb-2 text-xs font-semibold uppercase tracking-wider ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>Category</label>
+                <select id="tx-main-category" value={selectedCategoryId} onChange={handleMainCategoryChange} className={`w-full p-3 rounded-lg border bg-transparent outline-none ${theme === 'dark' ? 'border-slate-700 text-slate-200 bg-slate-800/50' : 'border-slate-300 text-slate-800'}`}>
+                  <option value="">Select...</option>
                   {categories.map((cat) => <option value={cat.id} key={cat.id}>{cat.name}</option>)}
                 </select>
               </div>
-              <div className="sm:col-span-1">
-                <label htmlFor="tx-subcategory" className="block text-sm font-medium text-gray-700">Sub-Category</label>
-                <select id="tx-subcategory" value={subCategoryId} onChange={(e) => setSubCategoryId(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm disabled:bg-gray-100" disabled={!selectedCategoryId}>
-                  <option value="">Select a sub-category...</option>
+              <div>
+                <label className={`block mb-2 text-xs font-semibold uppercase tracking-wider ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>Sub-Category</label>
+                <select id="tx-subcategory" value={subCategoryId} onChange={(e) => setSubCategoryId(e.target.value)} className={`w-full p-3 rounded-lg border bg-transparent outline-none ${theme === 'dark' ? 'border-slate-700 text-slate-200 bg-slate-800/50' : 'border-slate-300 text-slate-800'}`} disabled={!selectedCategoryId}>
+                  <option value="">Select...</option>
                   {availableSubCategories.map((sub) => {
                     const isDebt = !!sub.linkedDebtId;
                     let isDisabled = false;
@@ -326,22 +324,18 @@ export default function AddTransactionModal({
                   })}
                 </select>
               </div>
-            </>
+            </div>
           )}
-          <div className="sm:col-span-2">
-            <label htmlFor="tx-merchant" className="block text-sm font-medium text-gray-700">Merchant (Optional)</label>
-            <input type="text" id="tx-merchant" value={merchant} onChange={(e) => setMerchant(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="e.g., Kroger, Amazon, etc." />
-          </div>
-          <div className="sm:col-span-2">
-            <label htmlFor="tx-notes" className="block text-sm font-medium text-gray-700">Notes (Optional)</label>
-            <input type="text" id="tx-notes" value={notes} onChange={(e) => setNotes(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="e.g., Weekly groceries" />
-          </div>
+
+          <InputField label="Merchant" value={merchant} onChange={(e) => setMerchant(e.target.value)} placeholder="e.g., Kroger" theme={theme} />
+          <InputField label="Notes" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional note" theme={theme} />
         </div>
-        <div className="mt-6 flex justify-end space-x-3 border-t border-gray-200 pt-4 flex-shrink-0">
-          <button type="button" onClick={onClose} className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">Cancel</button>
-          <button type="submit" disabled={isSaveDisabled} className="rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 disabled:bg-indigo-300 disabled:cursor-not-allowed">Save Transaction</button>
+
+        <div className={`mt-6 pt-4 border-t flex justify-end gap-3 ${theme === 'dark' ? 'border-slate-700' : 'border-slate-200'}`}>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button type="submit" disabled={isSaveDisabled}>Save Transaction</Button>
         </div>
       </form>
-    </div>
+    </ModalWrapper>
   );
 }

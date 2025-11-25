@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DollarSign } from 'lucide-react';
 
 // --- Helper: Format string with commas only (while typing) ---
@@ -17,11 +17,10 @@ const formatCurrencyOnBlur = (val) => {
   const raw = val.toString().replace(/,/g, '');
   const num = parseFloat(raw);
   if (isNaN(num)) return '';
-  // Returns "1,234.56"
   return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
-// 1. Standard Text/Number Input (No changes)
+// 1. Standard Text/Number Input
 export function WizardTextInput({
   label,
   id,
@@ -54,7 +53,7 @@ export function WizardTextInput({
   );
 }
 
-// 2. Wizard Currency Input (Handles Auto-Commas & Blur)
+// 2. Wizard Currency Input
 export function WizardCurrencyInput({ label, id, value, onChange, placeholder = '0.00' }) {
   const [localValue, setLocalValue] = useState('');
 
@@ -104,7 +103,7 @@ export function WizardCurrencyInput({ label, id, value, onChange, placeholder = 
   );
 }
 
-// 3. Standard Currency Input (Handles Auto-Commas & Blur)
+// 3. Standard Currency Input
 export function StandardCurrencyInput({ value, onChange, placeholder = '0.00', id, disabled = false, autoFocus = false }) {
   const [localValue, setLocalValue] = useState('');
 
@@ -152,7 +151,7 @@ export function StandardCurrencyInput({ value, onChange, placeholder = '0.00', i
   );
 }
 
-// 4. Assignment Input (Handles Auto-Commas & Blur)
+// 4. Assignment Input
 export function AssignmentInput({ value, onChange, onBlur }) {
   const [localValue, setLocalValue] = useState('');
 
@@ -199,7 +198,7 @@ export function AssignmentInput({ value, onChange, onBlur }) {
   );
 }
 
-// 5. Budget Input (Updated: Check for disabled state)
+// 5. Budget Input
 export function BudgetInput({ value, onChange, disabled = false }) {
   const [localValue, setLocalValue] = useState('');
 
@@ -208,12 +207,9 @@ export function BudgetInput({ value, onChange, disabled = false }) {
     if (!value || num === 0) {
       setLocalValue('');
     } else {
-      // UPDATED LOGIC HERE
       if (disabled) {
-        // If disabled (Linked Debt), force standard currency format (1,234.56) immediately
         setLocalValue(num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
       } else {
-        // If enabled, keep it simple for editing (1,234.56 -> 1,234.56)
         setLocalValue(formatNumberString(value));
       }
     }
@@ -254,6 +250,73 @@ export function BudgetInput({ value, onChange, disabled = false }) {
         onBlur={handleBlur}
         disabled={disabled}
       />
+    </div>
+  );
+}
+
+// 6. Glass Currency Input (New Design System)
+export function GlassCurrencyInput({ value, onChange, placeholder = '0.00', id, disabled = false, autoFocus = false, theme = 'light', label }) {
+  const [localValue, setLocalValue] = useState('');
+  const [isFocused, setIsFocused] = useState(false);
+
+  useEffect(() => {
+    if (value !== undefined && value !== null && value !== '') {
+      setLocalValue(formatNumberString(value));
+    } else {
+      setLocalValue('');
+    }
+  }, [value]);
+
+  const handleChange = (e) => {
+    const raw = e.target.value.replace(/,/g, '');
+    if (/^\d*\.?\d*$/.test(raw)) {
+      setLocalValue(formatNumberString(raw));
+      onChange(raw);
+    }
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+    if (localValue) {
+      const formatted = formatCurrencyOnBlur(localValue);
+      setLocalValue(formatted);
+    }
+  };
+
+  return (
+    <div className="w-full mb-5">
+      {label && (
+        <label className={`block mb-2 text-xs font-semibold uppercase tracking-wider transition-colors duration-300 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>
+          {label}
+        </label>
+      )}
+      <div className={`
+        relative flex items-center transition-all duration-300 rounded-lg overflow-hidden border
+        ${isFocused 
+            ? 'border-zillion-400 ring-2 ring-zillion-400/20 bg-white/10 dark:bg-slate-900/40' 
+            : 'border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/20 hover:border-slate-400 dark:hover:border-slate-600'
+        }
+      `}>
+        <div className={`pl-3 pr-2 transition-colors duration-300 ${isFocused ? 'text-zillion-400' : 'text-slate-400'}`}>
+          <DollarSign className="h-4 w-4" />
+        </div>
+        <input
+          type="text"
+          inputMode="decimal"
+          id={id}
+          value={localValue}
+          onChange={handleChange}
+          onFocus={() => setIsFocused(true)}
+          onBlur={handleBlur}
+          disabled={disabled}
+          autoFocus={autoFocus}
+          placeholder={placeholder}
+          className={`
+            w-full py-3 text-sm bg-transparent outline-none transition-colors
+            ${theme === 'dark' ? 'text-slate-100 placeholder-slate-500' : 'text-slate-800 placeholder-slate-400'}
+          `}
+        />
+      </div>
     </div>
   );
 }

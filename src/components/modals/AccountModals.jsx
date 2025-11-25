@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, DollarSign } from 'lucide-react';
-import { WizardCurrencyInput } from '../ui/FormInputs'; // Import the new input
+import { GlassCurrencyInput } from '../ui/FormInputs'; // Correct import
+import { InputField } from '../ui/InputField';         // Correct import
+import { Button } from '../ui/Button';
+import { ModalWrapper } from '../ui/SharedUI';
 
 // Reusable Form Component (for Dashboard)
-export function AccountForm({ onAddAccount }) {
+export function AccountForm({ onAddAccount, theme = 'light' }) {
   const [name, setName] = useState('');
   const [balance, setBalance] = useState('');
-  const handleFocus = (e) => e.target.select();
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -26,59 +28,46 @@ export function AccountForm({ onAddAccount }) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex flex-col gap-4 rounded-lg border border-gray-200 p-4 sm:flex-row sm:items-end"
+      className={`flex flex-col gap-4 rounded-2xl border p-6 mb-8 transition-all duration-300 ${theme === 'dark' ? 'bg-slate-900/40 border-white/10' : 'bg-white/60 border-white/60'}`}
     >
-      <div className="flex-1">
-        <label
-          htmlFor="accountName"
-          className="block text-sm font-medium text-gray-700"
-        >
-          Account Name
-        </label>
-        <input
-          type="text"
-          id="accountName"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-          placeholder="e.g., Checking"
-        />
-      </div>
-      <div className="flex-1">
-        <label
-          htmlFor="accountBalance"
-          className="block text-sm font-medium text-gray-700"
-        >
-          Current Balance
-        </label>
-        <div className="relative mt-1">
-          <input
-            type="number"
-            id="accountBalance"
-            value={balance}
-            onChange={(e) => setBalance(e.target.value)}
-            onFocus={handleFocus}
-            className="block w-full rounded-md border-gray-300 pl-7 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-            placeholder="0.00"
+      <div className="flex flex-col sm:flex-row gap-4 items-start">
+        <div className="flex-1 w-full">
+          <InputField 
+            label="Account Name" 
+            id="accountName" 
+            value={name} 
+            onChange={(e) => setName(e.target.value)} 
+            placeholder="e.g., Checking" 
+            theme={theme} 
+            containerClassName="mb-0"
           />
-          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2">
-            <DollarSign className="h-4 w-4 text-gray-400" />
-          </div>
+        </div>
+        <div className="flex-1 w-full">
+          <GlassCurrencyInput 
+            label="Current Balance" 
+            id="accountBalance" 
+            value={balance} 
+            onChange={setBalance} 
+            placeholder="0.00" 
+            theme={theme} 
+          />
+        </div>
+        <div className="mt-0 sm:mt-7">
+          <Button
+            type="submit"
+            variant="primary"
+            icon={<Plus className="w-5 h-5" />}
+          >
+            Add
+          </Button>
         </div>
       </div>
-      <button
-        type="submit"
-        className="inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-      >
-        <Plus className="-ml-1 mr-2 h-5 w-5" />
-        Add
-      </button>
     </form>
   );
 }
 
 // Modal for editing an account
-export function EditAccountModal({ isOpen, onClose, onSave, account }) {
+export function EditAccountModal({ isOpen, onClose, onSave, account, theme = 'light' }) {
   const [name, setName] = useState('');
   const [balance, setBalance] = useState('');
 
@@ -102,78 +91,33 @@ export function EditAccountModal({ isOpen, onClose, onSave, account }) {
   if (!isOpen) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
-      onClick={onClose}
-    >
-      <form
-        onSubmit={handleSubmit}
-        className="relative w-full max-w-lg rounded-lg bg-white p-6 shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h3 className="text-lg font-medium leading-6 text-gray-900">
-          Edit Account
-        </h3>
-        <div className="mt-4 space-y-4">
-          <div>
-            <label
-              htmlFor="editAccountName"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Account Name
-            </label>
-            <input
-              type="text"
-              id="editAccountName"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-            />
-          </div>
-          <div>
-            <label
-              htmlFor="editAccountBalance"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Current Balance
-            </label>
-            <div className="relative mt-1">
-              <input
-                type="number"
-                id="editAccountBalance"
-                value={balance}
-                onChange={(e) => setBalance(e.target.value)}
-                onFocus={(e) => e.target.select()}
-                className="block w-full rounded-md border-gray-300 pl-7 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-              />
-              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2">
-                <DollarSign className="h-4 w-4 text-gray-400" />
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="mt-6 flex justify-end space-x-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            className="rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700"
-          >
-            Save Changes
-          </button>
+    <ModalWrapper onClose={onClose} theme={theme} title="Edit Account">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <InputField 
+          label="Account Name" 
+          id="editAccountName" 
+          value={name} 
+          onChange={(e) => setName(e.target.value)} 
+          theme={theme} 
+        />
+        <GlassCurrencyInput 
+          label="Current Balance" 
+          id="editAccountBalance" 
+          value={balance} 
+          onChange={setBalance} 
+          theme={theme} 
+        />
+        <div className="mt-6 flex justify-end gap-3">
+          <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+          <Button type="submit" variant="primary">Save Changes</Button>
         </div>
       </form>
-    </div>
+    </ModalWrapper>
   );
 }
 
 // Simple Modal wrapper for Adding (Used in Wizard)
-export function AddBankAccountModal({ isOpen, onClose, onAddAccount }) {
+export function AddBankAccountModal({ isOpen, onClose, onAddAccount, theme = 'light' }) {
   const [nickname, setNickname] = useState('');
   const [bankName, setBankName] = useState('');
   const [lastFour, setLastFour] = useState('');
@@ -202,28 +146,18 @@ export function AddBankAccountModal({ isOpen, onClose, onAddAccount }) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" onClick={onClose}>
-       <div className="relative w-full max-w-sm rounded-lg bg-white p-6 shadow-xl" onClick={e => e.stopPropagation()}>
-          <h3 className="text-xl font-semibold text-gray-800 mb-4">ADD NEW BANK ACCOUNT</h3>
-          <div className="space-y-4">
-             <input type="text" className="w-full border p-2 rounded" placeholder="Nickname" value={nickname} onChange={e => setNickname(e.target.value)} />
-             <input type="text" className="w-full border p-2 rounded" placeholder="Bank Name" value={bankName} onChange={e => setBankName(e.target.value)} />
-             <input type="text" className="w-full border p-2 rounded" placeholder="Last 4" value={lastFour} onChange={e => setLastFour(e.target.value)} />
-             
-             {/* UPDATED: Use Currency Input */}
-             <WizardCurrencyInput 
-               label="Current Balance"
-               id="add-balance"
-               value={balance}
-               onChange={setBalance}
-               placeholder="0.00"
-             />
-          </div>
-          <div className="mt-6 flex justify-end gap-2">
-             <button onClick={onClose} className="px-4 py-2 border rounded">Cancel</button>
-             <button onClick={handleAdd} className="px-4 py-2 bg-green-500 text-white rounded">Add</button>
-          </div>
-       </div>
-    </div>
+    <ModalWrapper onClose={onClose} theme={theme} title="Add New Bank Account">
+      <div className="space-y-4">
+         <InputField label="Nickname" value={nickname} onChange={e => setNickname(e.target.value)} placeholder="e.g. Savings" theme={theme} />
+         <InputField label="Bank Name" value={bankName} onChange={e => setBankName(e.target.value)} placeholder="e.g. Chase" theme={theme} />
+         <InputField label="Last 4 Digits" value={lastFour} onChange={e => setLastFour(e.target.value)} placeholder="1234" maxLength={4} theme={theme} />
+         <GlassCurrencyInput label="Current Balance" value={balance} onChange={setBalance} placeholder="0.00" theme={theme} />
+         
+         <div className="mt-6 flex justify-end gap-3">
+            <Button variant="outline" onClick={onClose}>Cancel</Button>
+            <Button variant="primary" onClick={handleAdd}>Add Account</Button>
+         </div>
+      </div>
+    </ModalWrapper>
   );
 }

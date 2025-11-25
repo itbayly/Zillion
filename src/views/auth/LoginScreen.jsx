@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Loader2, Mail, KeyRound, Phone, User } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Mail, KeyRound, Phone, User } from 'lucide-react';
 import { 
   signInWithPopup, 
   createUserWithEmailAndPassword, 
@@ -12,18 +12,52 @@ import { doc, setDoc } from 'firebase/firestore';
 import { auth, db, googleProvider } from '../../config/firebase';
 import { getDefaultBudgetData } from '../../utils/helpers';
 
+// --- New UI Components ---
+import { Button } from '../../components/ui/Button';
+import { InputField } from '../../components/ui/InputField';
+import { ThemeToggle } from '../../components/ui/ThemeToggle';
+
+// --- Ambient Background Component ---
+const AmbientBackground = ({ theme }) => (
+  <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10">
+    <div className={`absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-float ${theme === 'dark' ? 'bg-zillion-900/20' : 'bg-zillion-200'} transition-colors duration-1000`}></div>
+    <div className={`absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-float-delayed ${theme === 'dark' ? 'bg-indigo-900/20' : 'bg-blue-200'} transition-colors duration-1000`}></div>
+  </div>
+);
+
 export default function LoginScreen({ joinBudgetId }) {
+  const [theme, setTheme] = useState('light');
   const [isLoginMode, setIsLoginMode] = useState(true);
+  
+  // Form State
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  
+  // Logic State
   const [error, setError] = useState(null);
   const [info, setInfo] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  // --- Theme Effects ---
+  useEffect(() => {
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      setTheme('dark');
+    }
+  }, []);
+
+  useEffect(() => {
+    const root = window.document.documentElement;
+    if (theme === 'dark') root.classList.add('dark');
+    else root.classList.remove('dark');
+  }, [theme]);
+
+  const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
+
+  // --- Logic Handlers (Preserved) ---
   const handlePhoneChange = (e) => {
     const numbers = e.target.value.replace(/\D/g, '');
     let formatted = '';
@@ -108,58 +142,103 @@ export default function LoginScreen({ joinBudgetId }) {
     setFirstName(''); setLastName(''); setEmail(''); setPhone(''); setPassword(''); setConfirmPassword('');
   };
 
-  return (
-    <div className="flex min-h-screen w-full items-center justify-center bg-slate-100 p-4 font-sans">
-      <div className="w-full max-w-md rounded-lg bg-white p-8 shadow-xl">
-        <h1 className="mb-4 text-center text-3xl font-normal text-gray-900">
-          {isLoginMode ? <span className="text-6xl font-bold text-[#3DDC97]">ZILLION</span> : <>SIGN UP FOR<br /><span className="text-5xl font-bold text-[#3DDC97]">ZILLION</span></>}
-        </h1>
-        {error && <div className="mb-4 rounded-md border border-red-300 bg-red-50 p-3 text-center text-sm text-red-700">{error}</div>}
-        {info && <div className="mb-4 rounded-md border border-blue-300 bg-blue-50 p-3 text-center text-sm text-blue-700">{info}</div>}
+  // --- Google Icon SVG ---
+  const GoogleIcon = () => (
+    <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M22.577 12.254c0-.78-.068-1.522-.19-2.238H12.001v4.25h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.73 3.28-8.09z" fill="#4285F4" />
+      <path d="M12.001 23c3.23 0 5.94-1.07 7.92-2.91l-3.57-2.77c-1.07.72-2.42 1.15-3.85 1.15-2.94 0-5.44-1.99-6.33-4.66H1.95v2.88C3.89 20.25 7.63 23 12.001 23z" fill="#34A853" />
+      <path d="M5.67 13.79c-.22-.66-.34-1.36-.34-2.09s.12-1.43.34-2.09V6.73H1.95c-.66 1.32-1.05 2.82-1.05 4.48s.39 3.16 1.05 4.48l3.72-2.88z" fill="#FBBC05" />
+      <path d="M12.001 5.38c1.62 0 3.06.56 4.21 1.69l3.16-3.16C17.93 2.18 15.23 1 12.001 1 7.63 1 3.89 3.75 1.95 7.61l3.72 2.88c.89-2.67 3.39-4.66 6.33-4.66z" fill="#EA4335" />
+    </svg>
+  );
 
-        {isLoading ? (
-          <div className="flex flex-col items-center justify-center p-12"><Loader2 className="h-12 w-12 animate-spin text-[#3DDC97]" /><span className="mt-4 text-gray-700">Loading...</span></div>
-        ) : isLoginMode ? (
-          <>
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Email Address</label>
-                <div className="relative mt-1"><div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"><Mail className="h-5 w-5 text-gray-400" /></div><input type="email" value={email} onChange={e => setEmail(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 pl-10 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm" placeholder="you@example.com" /></div>
-              </div>
-              <div>
-                <div className="flex justify-between"><label className="block text-sm font-medium text-gray-700">Password</label><button type="button" onClick={handleForgotPassword} className="text-sm font-medium text-[#3DDC97] hover:text-emerald-500">Forgot?</button></div>
-                <div className="relative mt-1"><div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"><KeyRound className="h-5 w-5 text-gray-400" /></div><input type="password" value={password} onChange={e => setPassword(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 pl-10 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm" placeholder="••••••••" /></div>
-              </div>
-              <div><button type="submit" className="mt-4 w-full justify-center rounded-md border border-transparent bg-[#3DDC97] px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-emerald-600">SIGN IN</button></div>
-            </form>
-            <div className="my-6 flex items-center"><div className="flex-grow border-t border-gray-300"></div><span className="mx-4 flex-shrink text-sm text-gray-400">OR</span><div className="flex-grow border-t border-gray-300"></div></div>
-            <div className="space-y-3">
-              <button type="button" onClick={handleGoogleSignIn} className="inline-flex w-full items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">
-                <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M22.577 12.254c0-.78-.068-1.522-.19-2.238H12.001v4.25h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.73 3.28-8.09z" fill="#4285F4" /><path d="M12.001 23c3.23 0 5.94-1.07 7.92-2.91l-3.57-2.77c-1.07.72-2.42 1.15-3.85 1.15-2.94 0-5.44-1.99-6.33-4.66H1.95v2.88C3.89 20.25 7.63 23 12.001 23z" fill="#34A853" /><path d="M5.67 13.79c-.22-.66-.34-1.36-.34-2.09s.12-1.43.34-2.09V6.73H1.95c-.66 1.32-1.05 2.82-1.05 4.48s.39 3.16 1.05 4.48l3.72-2.88z" fill="#FBBC05" /><path d="M12.001 5.38c1.62 0 3.06.56 4.21 1.69l3.16-3.16C17.93 2.18 15.23 1 12.001 1 7.63 1 3.89 3.75 1.95 7.61l3.72 2.88c.89-2.67 3.39-4.66 6.33-4.66z" fill="#EA4335" /></svg> SIGN IN WITH GOOGLE
+  // --- Render ---
+  return (
+    <div className={`
+      min-h-screen w-full flex items-center justify-center p-4 relative transition-colors duration-1000
+      ${theme === 'dark' ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-800'}
+    `}>
+      <AmbientBackground theme={theme} />
+      <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
+
+      <div className={`
+        w-full max-w-md p-8 sm:p-10 rounded-3xl transition-all duration-500
+        ${theme === 'dark'
+          ? 'bg-slate-900/40 border border-white/10 shadow-[0_0_40px_-10px_rgba(16,185,129,0.15)] backdrop-blur-xl'
+          : 'bg-white/70 border border-white/60 shadow-2xl shadow-slate-200/50 backdrop-blur-md'
+        }
+      `}>
+        <div className="text-center mb-8">
+          {isLoginMode ? (
+            <>
+              <h1 className="text-4xl font-bold tracking-tight mb-2 text-zillion-400">ZILLION</h1>
+              <p className={`text-sm font-light ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>Master your financial future.</p>
+            </>
+          ) : (
+            <>
+              <h2 className={`text-xl font-medium tracking-wide uppercase mb-1 ${theme === 'dark' ? 'text-slate-300' : 'text-slate-800'}`}>Sign Up For</h2>
+              <h1 className="text-4xl font-bold tracking-tight text-zillion-400">ZILLION</h1>
+            </>
+          )}
+        </div>
+
+        {/* Messages */}
+        {error && <div className="mb-6 rounded-lg border border-red-500/50 bg-red-500/10 p-3 text-center text-sm text-red-500">{error}</div>}
+        {info && <div className="mb-6 rounded-lg border border-blue-500/50 bg-blue-500/10 p-3 text-center text-sm text-blue-500">{info}</div>}
+
+        {/* Form */}
+        <form onSubmit={isLoginMode ? handleLogin : handleSignUp} className="space-y-1">
+          {!isLoginMode && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <InputField name="firstName" label="First Name" placeholder="First" icon={<User className="w-4 h-4" />} value={firstName} onChange={e => setFirstName(e.target.value)} containerClassName="mb-1" />
+              <InputField name="lastName" label="Last Name" placeholder="Last" icon={<User className="w-4 h-4" />} value={lastName} onChange={e => setLastName(e.target.value)} containerClassName="mb-5 md:mb-1" />
+            </div>
+          )}
+          
+          <InputField name="email" label="Email Address" placeholder="you@example.com" type="email" icon={<Mail className="w-4 h-4" />} value={email} onChange={e => setEmail(e.target.value)} containerClassName="mb-5" />
+          
+          {!isLoginMode && <InputField name="phone" label="Phone Number" placeholder="(123) 456-7890" type="tel" icon={<Phone className="w-4 h-4" />} value={phone} onChange={handlePhoneChange} containerClassName="mb-5" />}
+          
+          <div className="relative">
+            <InputField name="password" label="Password" placeholder="••••••••" type="password" icon={<KeyRound className="w-4 h-4" />} value={password} onChange={e => setPassword(e.target.value)} containerClassName="mb-5" />
+            {isLoginMode && (
+              <button type="button" onClick={handleForgotPassword} className="absolute right-0 top-0 text-xs font-medium text-zillion-400 hover:text-zillion-500 transition-colors">
+                Forgot Password?
               </button>
-              <button type="button" onClick={toggleMode} className="w-full justify-center rounded-md border border-[#3DDC97] bg-white px-4 py-2 text-sm font-bold text-[#3DDC97] shadow-sm hover:bg-emerald-50">SIGN UP</button>
-            </div>
-          </>
-        ) : (
-          <>
-            <form onSubmit={handleSignUp} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div><label className="block text-sm font-medium text-gray-700">First Name</label><div className="relative mt-1"><div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"><User className="h-5 w-5 text-gray-400" /></div><input type="text" value={firstName} onChange={e => setFirstName(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 pl-10 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm" placeholder="First" /></div></div>
-                <div><label className="block text-sm font-medium text-gray-700">Last Name</label><div className="relative mt-1"><div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"><User className="h-5 w-5 text-gray-400" /></div><input type="text" value={lastName} onChange={e => setLastName(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 pl-10 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm" placeholder="Last" /></div></div>
-              </div>
-              <div><label className="block text-sm font-medium text-gray-700">Email Address</label><div className="relative mt-1"><div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"><Mail className="h-5 w-5 text-gray-400" /></div><input type="email" value={email} onChange={e => setEmail(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 pl-10 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm" placeholder="you@example.com" /></div></div>
-              <div><label className="block text-sm font-medium text-gray-700">Phone Number</label><div className="relative mt-1"><div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"><Phone className="h-5 w-5 text-gray-400" /></div><input type="tel" value={phone} onChange={handlePhoneChange} maxLength="14" className="mt-1 block w-full rounded-md border-gray-300 pl-10 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm" placeholder="(123) 456-7890" /></div></div>
-              <div><label className="block text-sm font-medium text-gray-700">Password</label><div className="relative mt-1"><div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"><KeyRound className="h-5 w-5 text-gray-400" /></div><input type="password" value={password} onChange={e => setPassword(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 pl-10 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm" placeholder="••••••••" /></div></div>
-              <div><label className="block text-sm font-medium text-gray-700">Confirm Password</label><div className="relative mt-1"><div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"><KeyRound className="h-5 w-5 text-gray-400" /></div><input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 pl-10 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm" placeholder="••••••••" /></div></div>
-              <div><button type="submit" className="mt-4 w-full justify-center rounded-md border border-transparent bg-[#3DDC97] px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-emerald-600">SIGN UP</button></div>
-            </form>
-            <div className="my-6 flex items-center"><div className="flex-grow border-t border-gray-300"></div><span className="mx-4 flex-shrink text-sm text-gray-400">OR</span><div className="flex-grow border-t border-gray-300"></div></div>
-            <div className="space-y-3">
-              <button type="button" onClick={handleGoogleSignIn} className="inline-flex w-full items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"><svg className="mr-2 h-5 w-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M22.577 12.254c0-.78-.068-1.522-.19-2.238H12.001v4.25h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.73 3.28-8.09z" fill="#4285F4" /><path d="M12.001 23c3.23 0 5.94-1.07 7.92-2.91l-3.57-2.77c-1.07.72-2.42 1.15-3.85 1.15-2.94 0-5.44-1.99-6.33-4.66H1.95v2.88C3.89 20.25 7.63 23 12.001 23z" fill="#34A853" /><path d="M5.67 13.79c-.22-.66-.34-1.36-.34-2.09s.12-1.43.34-2.09V6.73H1.95c-.66 1.32-1.05 2.82-1.05 4.48s.39 3.16 1.05 4.48l3.72-2.88z" fill="#FBBC05" /><path d="M12.001 5.38c1.62 0 3.06.56 4.21 1.69l3.16-3.16C17.93 2.18 15.23 1 12.001 1 7.63 1 3.89 3.75 1.95 7.61l3.72 2.88c.89-2.67 3.39-4.66 6.33-4.66z" fill="#EA4335" /></svg> SIGN UP WITH GOOGLE</button>
-              <button type="button" onClick={toggleMode} className="w-full justify-center rounded-md border border-[#3DDC97] bg-white px-4 py-2 text-sm font-bold text-[#3DDC97] shadow-sm hover:bg-emerald-50">SIGN IN</button>
-            </div>
-          </>
-        )}
+            )}
+          </div>
+
+          {!isLoginMode && <InputField name="confirmPassword" label="Confirm Password" placeholder="••••••••" type="password" icon={<KeyRound className="w-4 h-4" />} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} containerClassName="mb-5" />}
+          
+          <div className="pt-4">
+            <Button type="submit" fullWidth isLoading={isLoading} className="group">
+              {isLoginMode ? 'SIGN IN' : 'SIGN UP'}
+            </Button>
+          </div>
+        </form>
+
+        {/* Footer Actions */}
+        <div className="space-y-4 mt-6">
+          <div className="relative flex items-center justify-center py-2">
+             <div className="absolute inset-0 flex items-center"><div className={`w-full border-t ${theme === 'dark' ? 'border-slate-700' : 'border-slate-200'}`}></div></div>
+             <span className={`relative px-4 text-xs uppercase tracking-widest ${theme === 'dark' ? 'bg-slate-900 text-slate-500' : 'bg-white text-slate-400'}`}>OR</span>
+          </div>
+
+          <Button variant="outline" fullWidth onClick={handleGoogleSignIn} icon={<GoogleIcon />} className={`border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800`}>
+            {isLoginMode ? 'Sign In with Google' : 'Sign Up with Google'}
+          </Button>
+
+          {isLoginMode ? (
+            <Button variant="ghost" fullWidth onClick={toggleMode}>
+              <span className={`text-slate-500 ${theme === 'dark' ? 'text-slate-400' : ''}`}>New to Zillion? </span>
+              <span className="font-semibold ml-1 text-zillion-400 hover:underline">Sign up</span>
+            </Button>
+          ) : (
+            <Button variant="outline" fullWidth onClick={toggleMode} className={`border-zillion-400/60 text-zillion-500 hover:bg-zillion-50 dark:hover:bg-zillion-400/10 dark:text-zillion-400 uppercase tracking-wide text-xs font-semibold`}>
+              Back to Sign In
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -6,6 +6,7 @@ import { doc, setDoc } from 'firebase/firestore';
 import { UpdateProfileModal, ConfirmSignOutModal, ConfirmResetModal } from '../../components/modals/SettingsModals';
 import { ShareBudgetModal, InviteModal } from '../../components/modals/SharingModals';
 import { getDefaultBudgetData } from '../../utils/helpers';
+import { Button } from '../../components/ui/Button';
 
 export default function SettingsView({
   onSignOut,
@@ -18,6 +19,8 @@ export default function SettingsView({
   onOpenRemoveModal,
   sharingMessage,
   setSharingMessage,
+  setActiveTab,
+  theme = 'light'
 }) {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isSignOutModalOpen, setIsSignOutModalOpen] = useState(false);
@@ -40,6 +43,7 @@ export default function SettingsView({
   }, [sharingMessage, setSharingMessage]);
 
   const handleUpdateProfile = async (newName, currentPassword, newPassword) => {
+    // ... (Same logic as before, no changes needed here)
     if (!currentUser) return;
     setProfileMessage({ type: '', text: '' });
     try {
@@ -80,89 +84,98 @@ export default function SettingsView({
   };
 
   const UpdateBudgetCard = ({ icon: Icon, title, onClick }) => (
-    <button onClick={onClick} className="flex items-center p-4 bg-white border rounded-lg shadow-sm hover:bg-gray-50 transition-colors text-left w-full">
-        <div className="bg-indigo-100 p-3 rounded-full mr-4"><Icon className="h-6 w-6 text-indigo-600" /></div>
-        <span className="font-medium text-gray-700">{title}</span>
+    <button onClick={onClick} className={`flex items-center p-4 rounded-xl border transition-colors w-full ${theme === 'dark' ? 'bg-slate-800/50 border-slate-700 hover:bg-slate-800' : 'bg-white border-gray-200 hover:bg-gray-50'}`}>
+        <div className={`p-3 rounded-full mr-4 ${theme === 'dark' ? 'bg-indigo-900/30 text-indigo-400' : 'bg-indigo-100 text-indigo-600'}`}><Icon className="h-6 w-6" /></div>
+        <span className={`font-bold ${theme === 'dark' ? 'text-slate-200' : 'text-slate-700'}`}>{title}</span>
     </button>
   );
 
+  // Style Classes
+  const cardClass = `p-6 rounded-3xl border backdrop-blur-md transition-all duration-500 ${theme === 'dark' ? 'bg-slate-900/40 border-white/10 shadow-lg shadow-black/20' : 'bg-white/70 border-white/60 shadow-lg shadow-slate-200/50'}`;
+  const textMain = theme === 'dark' ? 'text-slate-200' : 'text-slate-800';
+  const textSub = theme === 'dark' ? 'text-slate-400' : 'text-slate-600';
+
   return (
     <>
-      <UpdateProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} onSave={handleUpdateProfile} currentUser={currentUser} />
-      <ShareBudgetModal isOpen={isShareModalOpen} onClose={() => setIsShareModalOpen(false)} budgetId={budgetId} />
-      <InviteModal isOpen={isInviteModalOpen} onClose={() => setIsInviteModalOpen(false)} budgetId={budgetId} userName={currentUser?.displayName || 'Your Partner'} />
-      <ConfirmSignOutModal isOpen={isSignOutModalOpen} onClose={() => setIsSignOutModalOpen(false)} onConfirm={onSignOut} />
-      <ConfirmResetModal isOpen={isResetModalOpen} onClose={() => setIsResetModalOpen(false)} onConfirm={handleResetBudget} />
+      <UpdateProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} onSave={handleUpdateProfile} currentUser={currentUser} theme={theme} />
+      <ShareBudgetModal isOpen={isShareModalOpen} onClose={() => setIsShareModalOpen(false)} budgetId={budgetId} theme={theme} />
+      <InviteModal isOpen={isInviteModalOpen} onClose={() => setIsInviteModalOpen(false)} budgetId={budgetId} userName={currentUser?.displayName || 'Your Partner'} theme={theme} />
+      <ConfirmSignOutModal isOpen={isSignOutModalOpen} onClose={() => setIsSignOutModalOpen(false)} onConfirm={onSignOut} theme={theme} />
+      <ConfirmResetModal isOpen={isResetModalOpen} onClose={() => setIsResetModalOpen(false)} onConfirm={handleResetBudget} theme={theme} />
 
       <div className="space-y-8">
         {sharingMessage.text && <div className={`rounded-md p-4 text-sm ${sharingMessage.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>{sharingMessage.text}</div>}
 
-        <div className="rounded-lg bg-white p-6 shadow-md">
-          <h3 className="text-xl font-semibold text-gray-800 mb-4">Personal Information</h3>
+        <div className={cardClass}>
+          <h3 className={`text-xl font-bold mb-4 ${textMain}`}>Personal Information</h3>
           {profileMessage.text && <div className={`rounded-md p-4 text-sm mb-4 ${profileMessage.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>{profileMessage.text}</div>}
-          <div className="space-y-2 text-gray-700">
-            <p><strong>Name:</strong> {currentUser?.displayName || 'Not set'}</p>
-            <p><strong>Email:</strong> {currentUser?.email || 'Not set'}</p>
+          <div className={`space-y-2 ${textSub}`}>
+            <p><strong className={textMain}>Name:</strong> {currentUser?.displayName || 'Not set'}</p>
+            <p><strong className={textMain}>Email:</strong> {currentUser?.email || 'Not set'}</p>
           </div>
-          <button onClick={() => { setProfileMessage({ type: '', text: '' }); setIsProfileModalOpen(true); }} className="mt-4 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"><User className="-ml-1 mr-2 h-5 w-5" /> Update Profile</button>
+          <div className="mt-4">
+            <Button variant="outline" onClick={() => { setProfileMessage({ type: '', text: '' }); setIsProfileModalOpen(true); }} icon={<User className="w-4 h-4" />}>Update Profile</Button>
+          </div>
         </div>
 
-        <div className="rounded-lg bg-white p-6 shadow-md">
-          <h3 className="text-xl font-semibold text-gray-800 mb-4">Budget Sharing</h3>
+        <div className={cardClass}>
+          <h3 className={`text-xl font-bold mb-4 ${textMain}`}>Budget Sharing</h3>
           {isSolo && (
             <>
-              <p className="text-sm text-gray-600 mb-4">Invite someone to share your budget or join an existing budget.</p>
+              <p className={`text-sm mb-4 ${textSub}`}>Invite someone to share your budget or join an existing budget.</p>
               <div className="flex flex-col sm:flex-row gap-4">
-                <button onClick={() => setIsInviteModalOpen(true)} className="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"><UserPlus className="-ml-1 mr-2 h-5 w-5" /> Invite Someone</button>
-                <button onClick={onOpenJoinModal} className="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"><Users className="-ml-1 mr-2 h-5 w-5" /> Join a Budget</button>
+                <Button variant="outline" onClick={() => setIsInviteModalOpen(true)} icon={<UserPlus className="w-4 h-4" />}>Invite Someone</Button>
+                <Button variant="outline" onClick={onOpenJoinModal} icon={<Users className="w-4 h-4" />}>Join a Budget</Button>
               </div>
             </>
           )}
           {isLinked && (
             <>
-              <p className="text-sm text-gray-600 mb-4">You are currently a member of a shared budget.</p>
-              <button onClick={onOpenLeaveModal} className="inline-flex items-center rounded-md border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-700 shadow-sm hover:bg-red-50"><Unlink className="-ml-1 mr-2 h-5 w-5" /> Leave Budget</button>
+              <p className={`text-sm mb-4 ${textSub}`}>You are currently a member of a shared budget.</p>
+              <Button variant="outline" onClick={onOpenLeaveModal} icon={<Unlink className="w-4 h-4" />} className="border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-900/20">Leave Budget</Button>
             </>
           )}
           {isOwner && (
             <>
-              <p className="text-sm text-gray-600 mb-4">You are sharing your budget with:</p>
-              <div className="text-gray-700 space-y-2 p-4 border rounded-md bg-slate-50">
+              <p className={`text-sm mb-4 ${textSub}`}>You are sharing your budget with:</p>
+              <div className={`text-sm space-y-2 p-4 border rounded-xl ${theme === 'dark' ? 'bg-slate-800/50 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>
                 <p><strong>Name:</strong> {userDoc.sharedWith.name || 'N/A'}</p>
                 <p><strong>Email:</strong> {userDoc.sharedWith.email || 'N/A'}</p>
                 <p><strong>Permissions:</strong> {userDoc.sharedWith.permissions || 'N/A'}</p>
               </div>
-              <button onClick={onOpenRemoveModal} className="mt-4 inline-flex items-center rounded-md border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-700 shadow-sm hover:bg-red-50"><Unlink className="-ml-1 mr-2 h-5 w-5" /> Remove Partner</button>
+              <div className="mt-4">
+                 <Button variant="outline" onClick={onOpenRemoveModal} icon={<Unlink className="w-4 h-4" />} className="border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-900/20">Remove Partner</Button>
+              </div>
             </>
           )}
         </div>
 
-        <div className="rounded-lg bg-white p-6 shadow-md">
-          <h3 className="text-xl font-semibold text-gray-800 mb-4">Budget Settings</h3>
-          <button onClick={() => setIsUpdateBudgetOpen(!isUpdateBudgetOpen)} className="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"><Edit className="-ml-1 mr-2 h-5 w-5" /> Update Budget Structure</button>
+        <div className={cardClass}>
+          <h3 className={`text-xl font-bold mb-4 ${textMain}`}>Budget Settings</h3>
+          <Button variant="outline" onClick={() => setIsUpdateBudgetOpen(!isUpdateBudgetOpen)} icon={<Edit className="w-4 h-4" />}>Update Budget Structure</Button>
           {isUpdateBudgetOpen && (
-            <div className="mt-6 space-y-4 pt-6 border-t">
-              <p className="text-sm text-gray-600">These actions will take you to the corresponding setup step to make changes. (Functionality coming soon).</p>
+            <div className={`mt-6 space-y-4 pt-6 border-t ${theme === 'dark' ? 'border-slate-700' : 'border-slate-200'}`}>
+              <p className={`text-sm ${textSub}`}>These actions will take you to the corresponding setup step to make changes. (Functionality coming soon).</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <UpdateBudgetCard icon={Wallet} title="Update Bank Accounts" onClick={() => alert('Functionality coming soon!')} />
-                <UpdateBudgetCard icon={Banknote} title="Update Income" onClick={() => alert('Functionality coming soon!')} />
-                <UpdateBudgetCard icon={Target} title="Update Savings Goals" onClick={() => alert('Functionality coming soon!')} />
-                <UpdateBudgetCard icon={CreditCard} title="Update Debts" onClick={() => alert('Functionality coming soon!')} />
-                <UpdateBudgetCard icon={ClipboardList} title="Update Categories" onClick={() => alert('Functionality coming soon!')} />
+                <UpdateBudgetCard icon={Wallet} title="Update Bank Accounts" onClick={() => setActiveTab('accounts')} />
+                <UpdateBudgetCard icon={Banknote} title="Update Income" onClick={() => setActiveTab('reports')} />
+                <UpdateBudgetCard icon={Target} title="Update Savings Goals" onClick={() => setActiveTab('reports')} />
+                <UpdateBudgetCard icon={CreditCard} title="Update Debts" onClick={() => setActiveTab('debts')} />
+                <UpdateBudgetCard icon={ClipboardList} title="Update Categories" onClick={() => setActiveTab('budget')} />
               </div>
-              <div className="mt-6 pt-6 border-t border-dashed border-red-300">
-                <h4 className="font-semibold text-red-700">Danger Zone</h4>
-                <button onClick={() => setIsResetModalOpen(true)} className="mt-2 inline-flex items-center rounded-md border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-700 shadow-sm hover:bg-red-50"><RefreshCw className="-ml-1 mr-2 h-5 w-5" /> Fully Reset Budget</button>
+              <div className="mt-6 pt-6 border-t border-dashed border-red-300/50">
+                <h4 className="font-bold text-red-500 mb-2">Danger Zone</h4>
+                <Button variant="outline" onClick={() => setIsResetModalOpen(true)} icon={<RefreshCw className="w-4 h-4" />} className="border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-900/20">Fully Reset Budget</Button>
               </div>
             </div>
           )}
         </div>
 
-        <div className="rounded-lg bg-white p-6 shadow-md">
-          <h3 className="text-xl font-semibold text-gray-800 mb-4">Other Actions</h3>
+        <div className={cardClass}>
+          <h3 className={`text-xl font-bold mb-4 ${textMain}`}>Other Actions</h3>
           <div className="flex flex-col sm:flex-row gap-4">
-            <button onClick={() => setIsShareModalOpen(true)} className="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"><Share2 className="-ml-1 mr-2 h-5 w-5" /> Share Budget ID</button>
-            <button onClick={() => setIsSignOutModalOpen(true)} className="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-red-50 hover:text-red-700"><LogOut className="-ml-1 mr-2 h-5 w-5" /> Sign Out</button>
+            <Button variant="outline" onClick={() => setIsShareModalOpen(true)} icon={<Share2 className="w-4 h-4" />}>Share Budget ID</Button>
+            <Button variant="outline" onClick={() => setIsSignOutModalOpen(true)} icon={<LogOut className="w-4 h-4" />} className="border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-900/20">Sign Out</Button>
           </div>
         </div>
       </div>

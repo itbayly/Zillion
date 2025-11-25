@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { PiggyBank, Settings, PlayCircle } from 'lucide-react';
 import CategoryCard from '../../components/cards/CategoryCard';
 import { EditBudgetStructureModal } from '../../components/modals/CategoryModals';
+import { Button } from '../../components/ui/Button';
 
 export default function BudgetView({
   categories,
@@ -13,6 +14,7 @@ export default function BudgetView({
   onFundSinkingFunds,
   debts,
   onOpenStartMonthModal,
+  theme = 'light' // Default to light if undefined to prevent crash, but allow prop to override
 }) {
   const [isStructureModalOpen, setIsStructureModalOpen] = useState(false);
 
@@ -34,41 +36,41 @@ export default function BudgetView({
         onClose={() => setIsStructureModalOpen(false)}
         categories={categories}
         onCategoriesChange={onCategoriesChange}
+        theme={theme}
       />
 
       <div className="space-y-0">
-        {/* Action Buttons - UPDATED Width to 924px */}
-        {/* Action Buttons - UPDATED Width to 924px */}
+        {/* Action Buttons */}
         <div className="mb-8 flex justify-between items-center w-full max-w-[924px]">
 
           {/* Left Side: Start Month Button */}
-          <button
-            type="button"
+          <Button
+            variant="primary"
             onClick={onOpenStartMonthModal}
-            className="inline-flex items-center rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-bold text-indigo-700 shadow-sm hover:bg-indigo-100"
+            icon={<PlayCircle className="w-4 h-4" />}
+            className="shadow-lg shadow-indigo-500/20 bg-indigo-600 hover:bg-indigo-700 text-white"
           >
-            <PlayCircle className="-ml-1 mr-2 h-4 w-4" />
             Start Month Flow
-          </button>
+          </Button>
 
           {/* Right Side: Existing Buttons */}
-          <div className="flex gap-4">
-            <button
-              type="button"
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
               onClick={onFundSinkingFunds}
-              className="inline-flex items-center rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-bold text-gray-700 shadow-sm hover:bg-gray-50"
+              icon={<PiggyBank className="w-4 h-4" />}
+              className="bg-white/50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300"
             >
-              <PiggyBank className="-ml-1 mr-2 h-4 w-4 text-gray-500" />
               Fund Sinking Funds
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="outline"
               onClick={() => setIsStructureModalOpen(true)}
-              className="inline-flex items-center rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-bold text-gray-700 shadow-sm hover:bg-gray-50"
+              icon={<Settings className="w-4 h-4" />}
+              className="bg-white/50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300"
             >
-              <Settings className="-ml-1 mr-2 h-4 w-4 text-gray-500" />
               Edit Categories
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -82,13 +84,14 @@ export default function BudgetView({
               sinkingFundBalances={sinkingFundBalances}
               debts={debts}
               onOpenTransactionDetails={onOpenTransactionDetails}
+              theme={theme}
             />
           ))}
         </div>
 
         {categories.length === 0 && (
-          <div className="w-full max-w-[924px] p-12 text-center rounded-xl border-2 border-dashed border-gray-300">
-            <p className="text-gray-400 font-montserrat">
+          <div className={`w-full max-w-[924px] p-12 text-center rounded-3xl border-2 border-dashed transition-colors duration-300 ${theme === 'dark' ? 'border-slate-800 text-slate-500' : 'border-slate-300 text-slate-400'}`}>
+            <p className="font-sans">
               No categories set up yet.
             </p>
           </div>

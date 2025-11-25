@@ -3,8 +3,9 @@ import { TrendingDown, Plus, PiggyBank, TrendingUp, CalendarCheck, Info } from '
 import { formatCurrency } from '../../utils/helpers';
 import { DebtForm } from '../../components/modals/DebtModals';
 import { DebtInfoRow } from '../../components/ui/SharedUI';
+import { Button } from '../../components/ui/Button';
 
-export default function DebtsView({ debts, onDebtsChange, onOpenDebtDetails, onOpenLumpSumModal }) {
+export default function DebtsView({ debts, onDebtsChange, onOpenDebtDetails, onOpenLumpSumModal, theme = 'light' }) {
   const [isFormOpen, setIsFormOpen] = useState(false);
 
   const handleAddDebt = (newDebt) => {
@@ -19,7 +20,6 @@ export default function DebtsView({ debts, onDebtsChange, onOpenDebtDetails, onO
     setIsFormOpen(false);
   };
 
-  // Amortization Helper (Local for Payoff Date calculation)
   const calculateAmortization = (principal, monthlyPayment, monthlyRate) => {
     if (monthlyPayment <= 0) return { term: Infinity };
     if (monthlyRate <= 0) return { term: principal / monthlyPayment };
@@ -42,42 +42,48 @@ export default function DebtsView({ debts, onDebtsChange, onOpenDebtDetails, onO
   };
 
   return (
-    <div className="rounded-lg bg-white p-6 shadow-md">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
-        <h2 className="text-2xl font-semibold text-gray-800">Debt Tracker</h2>
-        <div className="flex gap-2 mt-4 sm:mt-0">
-          <button type="button" onClick={onOpenLumpSumModal} className="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">
-            <TrendingDown className="-ml-1 mr-2 h-5 w-5" /> Make Lump Sum Payment
-          </button>
-          <button type="button" onClick={() => setIsFormOpen(!isFormOpen)} className="inline-flex items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700">
-            <Plus className="-ml-1 mr-2 h-5 w-5" /> {isFormOpen ? 'Close Form' : 'Add New Debt'}
-          </button>
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+        <h2 className={`text-2xl font-semibold ${theme === 'dark' ? 'text-slate-100' : 'text-slate-800'}`}>Debt Tracker</h2>
+        <div className="flex gap-3 mt-4 sm:mt-0">
+          <Button variant="outline" onClick={onOpenLumpSumModal} icon={<TrendingDown className="w-4 h-4" />}>Make Lump Sum Payment</Button>
+          <Button variant="primary" onClick={() => setIsFormOpen(!isFormOpen)} icon={<Plus className="w-4 h-4" />}>
+            {isFormOpen ? 'Close Form' : 'Add New Debt'}
+          </Button>
         </div>
       </div>
 
-      {isFormOpen && <DebtForm onAddDebt={handleAddDebt} />}
+      {isFormOpen && <DebtForm onAddDebt={handleAddDebt} theme={theme} />}
 
-      <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {debts.length === 0 ? (
-          <p className="text-center text-sm text-gray-500 md:col-span-2 lg:col-span-3">No debts added yet.</p>
+          <p className={`text-center text-sm col-span-full ${theme === 'dark' ? 'text-slate-500' : 'text-slate-400'}`}>No debts added yet.</p>
         ) : (
           debts.map((debt) => {
             const startingAmount = debt.startingAmount || debt.amountOwed;
             const totalPaidOnPrincipal = startingAmount - debt.amountOwed;
+            
+            // Glassmorphic Card Style
+            const cardClass = theme === 'dark' 
+              ? 'bg-slate-900/40 border-white/10 shadow-lg shadow-black/20' 
+              : 'bg-white/70 border-white/60 shadow-lg shadow-slate-200/50';
+            const borderClass = theme === 'dark' ? 'border-slate-800' : 'border-slate-100';
+            const textClass = theme === 'dark' ? 'text-slate-200' : 'text-slate-900';
+
             return (
-              <div key={debt.id} className="rounded-lg border border-gray-200 bg-white shadow-sm flex flex-col">
-                <div className="flex items-center justify-between border-b border-gray-200 p-4">
-                  <h3 className="text-lg font-bold text-gray-900">{debt.name}</h3>
+              <div key={debt.id} className={`rounded-3xl border backdrop-blur-md transition-all duration-500 flex flex-col overflow-hidden ${cardClass}`}>
+                <div className={`flex items-center justify-between border-b p-5 ${borderClass}`}>
+                  <h3 className={`text-lg font-bold ${textClass}`}>{debt.name}</h3>
                 </div>
-                <div className="p-4 space-y-3 flex-grow">
-                  <DebtInfoRow icon={PiggyBank} label="Remaining Owed:" value={formatCurrency(debt.amountOwed)} isMainValue={true} />
-                  <DebtInfoRow icon={TrendingUp} label="Paid on Principal:" value={formatCurrency(totalPaidOnPrincipal)} />
-                  <DebtInfoRow icon={CalendarCheck} label="Est. Payoff Date:" value={getPayoffDate(debt)} />
+                <div className="p-5 space-y-4 flex-grow">
+                  <DebtInfoRow icon={PiggyBank} label="Remaining Owed:" value={formatCurrency(debt.amountOwed)} isMainValue={true} theme={theme} />
+                  <DebtInfoRow icon={TrendingUp} label="Paid on Principal:" value={formatCurrency(totalPaidOnPrincipal)} theme={theme} />
+                  <DebtInfoRow icon={CalendarCheck} label="Est. Payoff Date:" value={getPayoffDate(debt)} theme={theme} />
                 </div>
-                <div className="border-t border-gray-200 p-4 bg-slate-50 rounded-b-lg">
-                  <button type="button" onClick={() => onOpenDebtDetails(debt)} className="w-full inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">
-                    <Info className="mr-2 h-5 w-5 text-indigo-600" /> View Debt Info & Calculator
-                  </button>
+                <div className={`border-t p-4 ${borderClass} ${theme === 'dark' ? 'bg-slate-800/30' : 'bg-slate-50/50'}`}>
+                  <Button variant="outline" fullWidth onClick={() => onOpenDebtDetails(debt)} icon={<Info className="w-4 h-4" />} className="text-xs h-9">
+                    View Debt Info & Calculator
+                  </Button>
                 </div>
               </div>
             );

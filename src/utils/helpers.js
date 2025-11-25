@@ -1,4 +1,4 @@
-import { auth } from '../config/firebase'; // Importing auth for the userName logic
+import { auth } from '../config/firebase';
 
 // Helper function to get current date as YYYY-MM
 export const getYearMonthKey = (date = new Date()) => {
@@ -21,47 +21,32 @@ export const getNewMonthEntry = (copyCategories = []) => ({
     ...cat,
     subcategories: cat.subcategories.map((sub) => ({
       ...sub,
-      // Reset budgeted amount for expenses, keep for sinking funds/debts
       budgeted:
         sub.type === 'sinking_fund' || sub.linkedDebtId ? sub.budgeted : 0,
     })),
   })),
   transactions: [],
-  sinkingFundBalances: {}, // Balances will be rolled over by reset function
+  sinkingFundBalances: {},
 });
 
 // NEW: Default state for a new *user document*
-// This is now a function to dynamically set the current month
 export const getDefaultBudgetData = () => {
-  const currentMonthKey = getYearMonthKey(); // "YYYY-MM"
+  const currentMonthKey = getYearMonthKey();
 
   return {
-    currentStep: 0, // <-- CHANGE THIS FROM 1 to 0
-    userName: '', // <-- ADD THIS LINE
+    currentStep: 0,
+    userName: '',
     bankAccounts: [],
     defaultAccountId: null,
     savingsAccountId: null,
     mainSavingsAccountId: null,
     debts: [],
-    hasMigratedV2: true, // Flag for this new data structure
-
-    // --- NEW FIELDS FOR SHARING ---
-    linkedBudgetId: null, // If set, this user is a "member" listening to another budget
-    sharedWith: null, // If set, this user is an "owner" sharing their budget
-    // --------------------------------
-
-    // NEW: All monthly data is nested
+    hasMigratedV2: true,
+    linkedBudgetId: null,
+    sharedWith: null,
     monthlyData: {
-      [currentMonthKey]: getNewMonthEntry(), // Create entry for the current month
+      [currentMonthKey]: getNewMonthEntry(),
     },
-
-    // DEPRECATED (will be removed by migration)
-    // income: ...,
-    // savingsGoal: ...,
-    // categories: ...,
-    // transactions: ...,
-    // sinkingFundBalances: ...,
-    // lastResetDate: ...,
   };
 };
 
@@ -82,7 +67,6 @@ export const exportTransactionsToCSV = (
   accountMap,
   filename
 ) => {
-  // 1. Create CSV Header
   const headers = [
     'Date',
     'Merchant',
@@ -96,7 +80,6 @@ export const exportTransactionsToCSV = (
   ];
   const csvRows = [headers.join(',')];
 
-  // 2. Create Data Rows
   for (const tx of transactions) {
     const subCatInfo = subCategoryMap.get(tx.subCategoryId) || {
       name: 'N/A',
@@ -118,7 +101,6 @@ export const exportTransactionsToCSV = (
     csvRows.push(row.join(','));
   }
 
-  // 3. Create Blob and Download Link
   const csvString = csvRows.join('\n');
   const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
 
@@ -140,7 +122,7 @@ export const calculatePaydayStats = (config) => {
   const { frequency, amount, anchorDate, semiMonth1, semiMonth2, monthlyDay, adjustment } = config;
   const numAmount = parseFloat(amount) || 0;
   const today = new Date();
-  today.setHours(0,0,0,0); // Normalize today
+  today.setHours(0,0,0,0);
   
   const currentMonth = today.getMonth();
   const currentYear = today.getFullYear();
@@ -148,16 +130,15 @@ export const calculatePaydayStats = (config) => {
   let payDates = [];
   let nextPayDate = null;
 
-  // Helper to adjust for weekends
   const adjustDate = (date) => {
     const d = new Date(date);
-    const day = d.getDay(); // 0=Sun, 6=Sat
+    const day = d.getDay();
     if (adjustment === 'before') {
-      if (day === 0) d.setDate(d.getDate() - 2); // Sun -> Fri
-      if (day === 6) d.setDate(d.getDate() - 1); // Sat -> Fri
+      if (day === 0) d.setDate(d.getDate() - 2);
+      if (day === 6) d.setDate(d.getDate() - 1);
     } else if (adjustment === 'after') {
-      if (day === 0) d.setDate(d.getDate() + 1); // Sun -> Mon
-      if (day === 6) d.setDate(d.getDate() + 2); // Sat -> Mon
+      if (day === 0) d.setDate(d.getDate() + 1);
+      if (day === 6) d.setDate(d.getDate() + 2);
     }
     return d;
   };
@@ -171,19 +152,15 @@ export const calculatePaydayStats = (config) => {
     
     let iterDate = new Date(anchorDate + 'T12:00:00'); 
     
-    // Catch up to current year/month
     let loops = 0;
-    const lookahead = new Date(currentYear, currentMonth + 2, 1); // Limit lookahead
+    const lookahead = new Date(currentYear, currentMonth + 2, 1);
     while (iterDate < lookahead && loops < 1000) {
       const adjusted = adjustDate(new Date(iterDate));
       
-      // If it's in current month, count it
       if (iterDate.getMonth() === currentMonth && iterDate.getFullYear() === currentYear) {
         payDates.push(adjusted);
       }
       
-      // If it's today or future, and we haven't found next yet, set it
-      // We compare using the adjusted date to allow for "Today is payday"
       if (!nextPayDate) {
         const todayTime = today.getTime();
         const adjTime = adjusted.setHours(0,0,0,0);
@@ -200,7 +177,6 @@ export const calculatePaydayStats = (config) => {
     const d1 = parseInt(semiMonth1) || 1;
     const d2 = semiMonth2 === 'last' ? new Date(currentYear, currentMonth + 1, 0).getDate() : (parseInt(semiMonth2) || 15);
     
-    // Check this month and next month to find next payday
     const datesToCheck = [
       new Date(currentYear, currentMonth, d1),
       new Date(currentYear, currentMonth, d2),
@@ -209,12 +185,10 @@ export const calculatePaydayStats = (config) => {
     
     const adjustedDates = datesToCheck.map(d => adjustDate(d));
     
-    // Current Month Stats
     adjustedDates.slice(0, 2).forEach(d => {
        if (d.getMonth() === currentMonth) payDates.push(d);
     });
     
-    // Find next
     nextPayDate = adjustedDates.find(d => d.setHours(0,0,0,0) >= today.getTime());
     
   } else if (frequency === 'monthly') {

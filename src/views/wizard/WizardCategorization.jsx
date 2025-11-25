@@ -1,12 +1,15 @@
-import React, { useState, useMemo } from 'react';
-import { Plus, Edit, Trash2, Link2, X, Check, ArrowRight, AlertTriangle, ArrowDownCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Plus, Edit, Trash2, Link2, X, Check, ArrowRight, AlertTriangle, ArrowDownCircle, FileEdit } from 'lucide-react';
 import { formatCurrency } from '../../utils/helpers';
 import { AddFromSuggestionsModal, CreateCustomCategoryModal, AddSubCategoryModal } from '../../components/modals/CategoryModals';
 import { AssignRemainingModal } from '../../components/modals/BudgetAdjustmentModals';
-import { BudgetInput } from '../../components/ui/FormInputs';
+import { Button } from '../../components/ui/Button';
+import { InputField } from '../../components/ui/InputField';
+import { AmbientBackground } from '../../components/ui/SharedUI';
+import { ThemeToggle } from '../../components/ui/ThemeToggle';
 
-// Step 10
-export function WizardStep4_Categories({ categories, onCategoriesChange, onNext, onBack, isModal = false }) {
+// --- STEP 10: CATEGORIES ---
+export function WizardStep4_Categories({ categories, onCategoriesChange, onNext, onBack, isModal = false, theme, toggleTheme }) {
   const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(false);
   const [isCustomCatOpen, setIsCustomCatOpen] = useState(false);
   const [isCustomSubOpen, setIsCustomSubOpen] = useState(false);
@@ -48,74 +51,94 @@ export function WizardStep4_Categories({ categories, onCategoriesChange, onNext,
     onCategoriesChange(newStructure); setIsSuggestionsOpen(false);
   };
 
-  const containerClasses = isModal ? 'p-1' : 'rounded-lg bg-white p-6 shadow-md sm:p-8 max-w-3xl mx-auto';
+  const content = (
+    <>
+      <div className="text-center mb-6 flex-shrink-0">
+        <h2 className="text-sm font-bold tracking-[0.2em] text-zillion-400 uppercase mb-2 transition-colors duration-300">ZILLION</h2>
+        <h1 className={`text-2xl font-bold transition-colors duration-300 ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>Build Your Budget</h1>
+      </div>
+
+      <div className="flex gap-3 mb-6 flex-shrink-0">
+        <Button variant="outline" fullWidth onClick={() => setIsSuggestionsOpen(true)} icon={<Plus size={16} />} className="text-zillion-500 border-zillion-400 hover:bg-zillion-50 dark:hover:bg-zillion-900/20">ADD SUGGESTIONS</Button>
+        <Button variant="outline" fullWidth onClick={() => setIsCustomCatOpen(true)} icon={<FileEdit size={16} />} className="text-zillion-500 border-zillion-400 hover:bg-zillion-50 dark:hover:bg-zillion-900/20">CREATE CUSTOM</Button>
+      </div>
+
+      <div className="flex-grow overflow-y-auto min-h-[300px] pr-2">
+        {categories.length === 0 ? (
+          <div className={`h-full border-2 border-dashed rounded-xl flex items-center justify-center text-sm ${theme === 'dark' ? 'border-slate-700 text-slate-400' : 'border-slate-300 text-slate-400'}`}>
+            No categories added
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {categories.map(cat => (
+              <div key={cat.id}>
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className={`font-bold text-lg ${theme === 'dark' ? 'text-slate-200' : 'text-slate-800'}`}>{cat.name}</h3>
+                  <div className="flex gap-2">
+                      <button onClick={() => { setCurrentCatId(cat.id); setIsCustomSubOpen(true); }} className="p-1 text-zillion-400 hover:bg-zillion-50 dark:hover:bg-zillion-900 rounded"><Plus size={16} /></button>
+                      <button onClick={() => handleDeleteCategory(cat.id)} className="p-1 text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"><Trash2 size={16} /></button>
+                  </div>
+                </div>
+                <div className={`rounded-lg border overflow-hidden ${theme === 'dark' ? 'border-slate-700 bg-slate-900/30' : 'border-slate-200 bg-white'}`}>
+                    {cat.subcategories.length === 0 && <div className="p-4 text-xs text-center text-slate-400">No sub-categories</div>}
+                    {cat.subcategories.map((sub, idx) => (
+                      <div key={sub.id} className={`p-3 flex justify-between items-center ${idx !== cat.subcategories.length - 1 ? `border-b ${theme === 'dark' ? 'border-slate-800' : 'border-slate-100'}` : ''}`}>
+                        <div className="flex items-center gap-3">
+                            <span className={`text-sm font-medium ${theme === 'dark' ? 'text-slate-300' : 'text-slate-700'}`}>{sub.name}</span>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded ${sub.type === 'expense' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' : 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'}`}>{sub.type === 'expense' ? 'Expense' : 'Sinking Fund'}</span>
+                        </div>
+                        <button onClick={() => handleDeleteSubCategory(cat.id, sub.id)} className="text-slate-300 hover:text-red-500"><Trash2 size={14} /></button>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {!isModal && (
+        <div className={`mt-6 pt-6 border-t flex justify-between flex-shrink-0 ${theme === 'dark' ? 'border-slate-700' : 'border-slate-200'}`}>
+            <Button variant="outline" onClick={onBack} className="px-8 uppercase font-bold text-xs border-zillion-400/60 text-zillion-500 hover:bg-zillion-50 dark:hover:bg-zillion-400/10 dark:text-zillion-400">BACK</Button>
+            <Button variant="primary" onClick={onNext} disabled={categories.length === 0} className="px-8 uppercase font-bold text-xs">NEXT</Button>
+        </div>
+      )}
+    </>
+  );
+
+  if (isModal) return <div className="h-full flex flex-col">{content}</div>;
 
   return (
     <>
-      <AddFromSuggestionsModal isOpen={isSuggestionsOpen} onClose={() => setIsSuggestionsOpen(false)} onAdd={handleAddFromSuggestions} />
-      <CreateCustomCategoryModal isOpen={isCustomCatOpen} onClose={() => setIsCustomCatOpen(false)} onAdd={handleAddCustomCategory} />
-      {isCustomSubOpen && <AddSubCategoryModal isOpen={isCustomSubOpen} onClose={() => setIsCustomSubOpen(false)} onAdd={handleAddCustomSubCategory} />}
+      <AddFromSuggestionsModal isOpen={isSuggestionsOpen} onClose={() => setIsSuggestionsOpen(false)} onAdd={handleAddFromSuggestions} theme={theme} />
+      <CreateCustomCategoryModal isOpen={isCustomCatOpen} onClose={() => setIsCustomCatOpen(false)} onAdd={handleAddCustomCategory} theme={theme} />
+      {isCustomSubOpen && <AddSubCategoryModal isOpen={isCustomSubOpen} onClose={() => setIsCustomSubOpen(false)} onAdd={handleAddCustomSubCategory} theme={theme} />}
 
-      <div className={containerClasses}>
-        {!isModal ? (
-          <div className="mx-auto max-w-lg text-center mb-8">
-            <h2 className="text-2xl font-bold uppercase text-[#3DDC97] tracking-widest">ZILLION</h2>
-            <h3 className="mt-4 text-3xl font-semibold text-gray-800">Build Your Budget</h3>
-          </div>
-        ) : (
-          <div className="mb-4"><p className="text-sm text-gray-500">Add or remove categories to adjust your budget structure.</p></div>
-        )}
-
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:justify-center">
-          <button type="button" onClick={() => setIsSuggestionsOpen(true)} className="inline-flex w-full justify-center items-center rounded-md border border-[#3DDC97] bg-white px-6 py-2 text-sm font-bold text-[#3DDC97] shadow-sm hover:bg-emerald-50 sm:w-auto"><Plus className="-ml-1 mr-2 h-5 w-5" /> ADD SUGGESTIONS</button>
-          <button type="button" onClick={() => setIsCustomCatOpen(true)} className="inline-flex w-full justify-center items-center rounded-md border border-[#3DDC97] bg-white px-6 py-2 text-sm font-bold text-[#3DDC97] shadow-sm hover:bg-emerald-50 sm:w-auto"><Edit className="-ml-1 mr-2 h-5 w-5" /> CREATE CUSTOM</button>
+      <div className={`
+        min-h-screen w-full flex items-center justify-center p-4 relative transition-colors duration-1000
+        ${theme === 'dark' ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-800'}
+      `}>
+        <AmbientBackground theme={theme} />
+        <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
+        <div className={`
+          w-full max-w-2xl p-8 sm:p-10 rounded-3xl transition-all duration-500
+          ${theme === 'dark'
+            ? 'bg-slate-900/40 border border-white/10 shadow-[0_0_40px_-10px_rgba(16,185,129,0.15)] backdrop-blur-xl'
+            : 'bg-white/70 border border-white/60 shadow-2xl shadow-slate-200/50 backdrop-blur-md'
+          }
+          animate-in fade-in duration-700 flex flex-col h-[80vh]
+        `}>
+          {content}
         </div>
-
-        <div className={`space-y-6 ${isModal ? 'max-h-[50vh] overflow-y-auto pr-2' : ''}`}>
-          {categories.length === 0 && <div className="rounded-lg border-2 border-dashed border-gray-300 p-12 text-center"><h3 className="mt-2 text-sm font-medium text-gray-900">No categories added</h3></div>}
-          {categories.map((category) => (
-            <div key={category.id} className="rounded-lg border border-gray-200 bg-slate-50">
-              <div className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3 sm:px-6 rounded-t-lg">
-                <h3 className="text-lg font-semibold text-gray-900">{category.name}</h3>
-                <div className="flex items-center space-x-2">
-                  <button type="button" onClick={() => { setCurrentCatId(category.id); setIsCustomSubOpen(true); }} className="rounded-full bg-emerald-50 p-1 text-emerald-600 hover:bg-emerald-100"><Plus className="h-4 w-4" /></button>
-                  <button type="button" onClick={() => handleDeleteCategory(category.id)} className="rounded-full bg-red-50 p-1 text-red-600 hover:bg-red-100"><Trash2 className="h-4 w-4" /></button>
-                </div>
-              </div>
-              <div className="p-4 sm:p-6">
-                {category.subcategories.length === 0 ? <p className="text-sm text-gray-500">No sub-categories yet.</p> : (
-                  <ul className="space-y-3">
-                    {category.subcategories.map((sub) => (
-                      <li key={sub.id} className="flex items-center justify-between rounded-md bg-white p-3 shadow-sm">
-                        <div className="flex items-center">
-                          <span className="text-sm font-medium text-gray-800">{sub.name}</span>
-                          <span className={`ml-3 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${sub.type === 'expense' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>{sub.type === 'expense' ? 'Expense' : 'Sinking Fund'}</span>
-                        </div>
-                        <button type="button" onClick={() => handleDeleteSubCategory(category.id, sub.id)} className="text-gray-400 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {!isModal && (
-          <div className="flex justify-between pt-8 mt-8 border-t max-w-lg mx-auto">
-            <button type="button" onClick={onBack} className="inline-flex items-center rounded-md border border-gray-300 bg-white px-10 py-2 text-sm font-bold text-[#3DDC97] shadow-sm hover:bg-gray-50">BACK</button>
-            <button type="button" onClick={onNext} disabled={categories.length === 0} className="inline-flex items-center rounded-md border border-transparent bg-[#3DDC97] px-10 py-2 text-sm font-bold text-white shadow-sm hover:bg-emerald-600 disabled:cursor-not-allowed disabled:bg-gray-300">NEXT</button>
-          </div>
-        )}
       </div>
     </>
   );
 }
 
-// Step 11
-export function WizardStep_LinkDebts({ categories, debts, onCategoriesChange, onBack, onNext }) {
+// --- STEP 11: LINK DEBTS ---
+export function WizardStep_LinkDebts({ categories, debts, onCategoriesChange, onBack, onNext, theme, toggleTheme }) {
   const [linkModes, setLinkModes] = useState({});
-  const debtsToLink = useMemo(() => debts.filter((debt) => debt.autoInclude), [debts]);
+  const debtsToLink = React.useMemo(() => debts.filter((debt) => debt.autoInclude), [debts]);
 
   const toggleMode = (debtId, mode) => setLinkModes((prev) => ({ ...prev, [debtId]: mode }));
 
@@ -144,62 +167,105 @@ export function WizardStep_LinkDebts({ categories, debts, onCategoriesChange, on
   };
 
   return (
-    <div className="rounded-lg bg-white p-6 shadow-md sm:p-8 max-w-3xl mx-auto">
-      <div className="mx-auto max-w-lg text-center mb-8">
-        <h2 className="text-2xl font-bold uppercase text-[#3DDC97] tracking-widest">ZILLION</h2>
-        <h3 className="mt-4 text-3xl font-semibold text-gray-800">Link Debts to Budget</h3>
-      </div>
-      <div className="space-y-6">
-        {debtsToLink.length === 0 ? <div className="rounded-lg border-2 border-dashed border-gray-300 p-8 text-center"><p className="text-gray-500">No debts marked for auto-include.</p></div> : debtsToLink.map((debt) => {
-            const linkedSubCategory = categories.flatMap((c) => c.subcategories).find((sub) => sub.linkedDebtId === debt.id);
-            const linkedCategory = linkedSubCategory ? categories.find((c) => c.subcategories.some((sub) => sub.id === linkedSubCategory.id)) : null;
-            const mode = linkModes[debt.id] || 'existing';
-            return (
-              <div key={debt.id} className="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-slate-50 px-4 py-3 border-b border-gray-200">
-                  <div><span className="font-bold text-gray-900">{debt.name}</span><span className="mx-2 text-gray-400">|</span><span className="text-sm text-gray-600">{formatCurrency(debt.monthlyPayment)} / mo</span></div>
-                  {linkedSubCategory ? <div className="flex items-center text-sm font-medium text-[#3DDC97]"><Link2 className="w-4 h-4 mr-1" /> Linked to: {linkedCategory?.name} / {linkedSubCategory.name}</div> : <div className="text-sm text-gray-400 italic">Not linked yet</div>}
-                </div>
-                <div className="p-4">
-                  {linkedSubCategory ? (
-                    <div className="flex justify-end"><button type="button" onClick={() => handleUnlinkDebt(debt.id)} className="inline-flex items-center rounded-md border border-red-200 bg-red-50 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-100"><X className="mr-1.5 h-4 w-4" /> Unlink</button></div>
-                  ) : (
-                    <div className="flex flex-col gap-4">
-                      <div className="flex justify-center sm:justify-start">
-                        <span className="isolate inline-flex rounded-md shadow-sm">
-                          <button type="button" onClick={() => toggleMode(debt.id, 'existing')} className={`relative inline-flex items-center rounded-l-md border px-3 py-1.5 text-xs font-medium ${mode === 'existing' ? 'border-[#3DDC97] bg-emerald-50 text-[#3DDC97] z-10' : 'border-gray-300 bg-white text-gray-700'}`}>Select Existing</button>
-                          <button type="button" onClick={() => toggleMode(debt.id, 'create')} className={`relative -ml-px inline-flex items-center rounded-r-md border px-3 py-1.5 text-xs font-medium ${mode === 'create' ? 'border-[#3DDC97] bg-emerald-50 text-[#3DDC97] z-10' : 'border-gray-300 bg-white text-gray-700'}`}>Create New</button>
-                        </span>
-                      </div>
-                      <div>
-                        {mode === 'create' ? (
-                          <select className="block w-full rounded-md border-gray-300 shadow-sm" onChange={(e) => handleCreateAndLink(debt.id, e.target.value)}>
-                            <option value="">Select Main Category...</option>{categories.map((cat) => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
-                          </select>
-                        ) : (
-                          <select className="block w-full rounded-md border-gray-300 shadow-sm" onChange={(e) => handleLinkExisting(debt.id, e.target.value)}>
-                            <option value="">Select existing sub-category...</option>
-                            {categories.map((cat) => <optgroup label={cat.name} key={cat.id}>{cat.subcategories.map((sub) => <option key={sub.id} value={sub.id} disabled={!!sub.linkedDebtId}>{sub.name} {sub.linkedDebtId ? '(Linked)' : ''}</option>)}</optgroup>)}
-                          </select>
-                        )}
-                      </div>
+    <div className={`
+      min-h-screen w-full flex items-center justify-center p-4 relative transition-colors duration-1000
+      ${theme === 'dark' ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-800'}
+    `}>
+      <AmbientBackground theme={theme} />
+      <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
+
+      <div className={`
+        w-full max-w-2xl p-8 sm:p-10 rounded-3xl transition-all duration-500
+        ${theme === 'dark'
+          ? 'bg-slate-900/40 border border-white/10 shadow-[0_0_40px_-10px_rgba(16,185,129,0.15)] backdrop-blur-xl'
+          : 'bg-white/70 border border-white/60 shadow-2xl shadow-slate-200/50 backdrop-blur-md'
+        }
+        animate-in fade-in duration-700 flex flex-col h-[80vh]
+      `}>
+        <div className="text-center mb-8 flex-shrink-0">
+          <h2 className="text-sm font-bold tracking-[0.2em] text-zillion-400 uppercase mb-2 transition-colors duration-300">ZILLION</h2>
+          <h1 className={`text-2xl font-bold transition-colors duration-300 ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>Link Debts to Budget</h1>
+        </div>
+
+        <div className="flex-grow overflow-y-auto pr-2 space-y-6">
+          {debtsToLink.length === 0 ? (
+            <div className={`rounded-lg border-2 border-dashed p-8 text-center ${theme === 'dark' ? 'border-slate-700 text-slate-400' : 'border-slate-300 text-slate-500'}`}>
+              <p>No debts marked for auto-include.</p>
+            </div>
+          ) : (
+            debtsToLink.map((debt) => {
+              const linkedSubCategory = categories.flatMap((c) => c.subcategories).find((sub) => sub.linkedDebtId === debt.id);
+              const linkedCategory = linkedSubCategory ? categories.find((c) => c.subcategories.some((sub) => sub.id === linkedSubCategory.id)) : null;
+              const mode = linkModes[debt.id] || 'existing';
+              
+              return (
+                <div key={debt.id} className={`border rounded-lg overflow-hidden ${theme === 'dark' ? 'border-slate-700 bg-slate-900/30' : 'border-slate-200 bg-white'}`}>
+                  <div className={`p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between border-b ${theme === 'dark' ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
+                    <div>
+                      <span className={`font-bold text-base ${theme === 'dark' ? 'text-slate-200' : 'text-slate-900'}`}>{debt.name}</span>
+                      <span className="mx-2 text-slate-400">|</span>
+                      <span className="text-sm text-slate-500">{formatCurrency(debt.monthlyPayment)} / mo</span>
                     </div>
-                  )}
+                    {linkedSubCategory ? (
+                      <div className="flex items-center text-sm font-medium text-zillion-500">
+                        <Link2 className="w-4 h-4 mr-1" /> Linked to: {linkedCategory?.name} / {linkedSubCategory.name}
+                      </div>
+                    ) : (
+                      <div className="text-sm text-slate-400 italic">Not linked yet</div>
+                    )}
+                  </div>
+                  <div className="p-4">
+                    {linkedSubCategory ? (
+                      <div className="flex justify-end">
+                        <button onClick={() => handleUnlinkDebt(debt.id)} className="inline-flex items-center rounded-md border border-red-200 bg-red-50 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-100 transition-colors">
+                          <X className="mr-1.5 h-4 w-4" /> Unlink
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-4">
+                        <div className="flex justify-center sm:justify-start">
+                          <span className="isolate inline-flex rounded-md shadow-sm">
+                            <button type="button" onClick={() => toggleMode(debt.id, 'existing')} className={`relative inline-flex items-center rounded-l-md border px-3 py-1.5 text-xs font-medium transition-colors ${mode === 'existing' ? 'border-zillion-400 bg-zillion-50 text-zillion-600 z-10 dark:bg-zillion-900/20 dark:text-zillion-400' : 'border-slate-300 bg-transparent text-slate-500 hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800'}`}>Select Existing</button>
+                            <button type="button" onClick={() => toggleMode(debt.id, 'create')} className={`relative -ml-px inline-flex items-center rounded-r-md border px-3 py-1.5 text-xs font-medium transition-colors ${mode === 'create' ? 'border-zillion-400 bg-zillion-50 text-zillion-600 z-10 dark:bg-zillion-900/20 dark:text-zillion-400' : 'border-slate-300 bg-transparent text-slate-500 hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800'}`}>Create New</button>
+                          </span>
+                        </div>
+                        <div>
+                          {mode === 'create' ? (
+                            <select className={`block w-full rounded-md border shadow-sm p-2 text-sm bg-transparent outline-none ${theme === 'dark' ? 'border-slate-600 text-slate-200' : 'border-slate-300 text-slate-800'}`} onChange={(e) => handleCreateAndLink(debt.id, e.target.value)}>
+                              <option value="">Select Main Category...</option>
+                              {categories.map((cat) => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+                            </select>
+                          ) : (
+                            <select className={`block w-full rounded-md border shadow-sm p-2 text-sm bg-transparent outline-none ${theme === 'dark' ? 'border-slate-600 text-slate-200' : 'border-slate-300 text-slate-800'}`} onChange={(e) => handleLinkExisting(debt.id, e.target.value)}>
+                              <option value="">Select existing sub-category...</option>
+                              {categories.map((cat) => (
+                                <optgroup label={cat.name} key={cat.id} className={theme === 'dark' ? 'bg-slate-800 text-slate-200' : ''}>
+                                  {cat.subcategories.map((sub) => <option key={sub.id} value={sub.id} disabled={!!sub.linkedDebtId}>{sub.name} {sub.linkedDebtId ? '(Linked)' : ''}</option>)}
+                                </optgroup>
+                              ))}
+                            </select>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-        })}
-      </div>
-      <div className="flex justify-between pt-8 mt-8 border-t max-w-lg mx-auto">
-        <button type="button" onClick={onBack} className="inline-flex items-center rounded-md border border-gray-300 bg-white px-10 py-2 text-sm font-bold text-[#3DDC97] shadow-sm hover:bg-gray-50">BACK</button>
-        <button type="button" onClick={onNext} className="inline-flex items-center rounded-md border border-transparent bg-[#3DDC97] px-10 py-2 text-sm font-bold text-white shadow-sm hover:bg-emerald-600">NEXT</button>
+              );
+            })
+          )}
+        </div>
+
+        <div className={`mt-6 pt-6 border-t flex justify-between flex-shrink-0 ${theme === 'dark' ? 'border-slate-700' : 'border-slate-200'}`}>
+          <Button variant="outline" onClick={onBack} className="px-8 uppercase font-bold text-xs border-zillion-400/60 text-zillion-500 hover:bg-zillion-50 dark:hover:bg-zillion-400/10 dark:text-zillion-400">BACK</Button>
+          <Button variant="primary" onClick={onNext} className="px-8 uppercase font-bold text-xs">NEXT</Button>
+        </div>
       </div>
     </div>
   );
 }
 
-// Step 12
-export function WizardStep5_AssignBudgets({ categories, remainingToBudget, onCategoriesChange, debts, onBack, bankAccounts, onUpdateBankAccounts, onFinishSetup, onUpdateDebts, sinkingFundBalances, onUpdateSinkingFundBalances, savingsAccountId }) {
+// --- STEP 12: ASSIGN BUDGET ---
+export function WizardStep5_AssignBudgets({ categories, remainingToBudget, onCategoriesChange, debts, onBack, bankAccounts, onUpdateBankAccounts, onFinishSetup, onUpdateDebts, sinkingFundBalances, onUpdateSinkingFundBalances, savingsAccountId, theme, toggleTheme }) {
   const [isAssignRemainingOpen, setIsAssignRemainingOpen] = useState(false);
   const remainingRounded = Math.round(remainingToBudget * 100) / 100;
 
@@ -247,76 +313,109 @@ export function WizardStep5_AssignBudgets({ categories, remainingToBudget, onCat
   };
 
   return (
-    <>
+    <div className={`
+      min-h-screen w-full flex items-center justify-center p-4 relative transition-colors duration-1000
+      ${theme === 'dark' ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-800'}
+    `}>
+      <AmbientBackground theme={theme} />
+      <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
       <AssignRemainingModal isOpen={isAssignRemainingOpen} onClose={() => setIsAssignRemainingOpen(false)} remainingAmount={remainingRounded} bankAccounts={bankAccounts} onAssign={handleAssignRemaining} debts={debts} categories={categories} />
 
-      <div className="rounded-lg bg-white p-6 shadow-md sm:p-8 max-w-4xl mx-auto">
-        <div className="mx-auto max-w-lg text-center mb-6">
-          <h2 className="text-2xl font-bold uppercase text-[#3DDC97] tracking-widest">ZILLION</h2>
-          <h3 className="mt-4 text-3xl font-semibold text-gray-800">Assign Your Budget</h3>
+      <div className={`
+        w-full max-w-2xl p-8 sm:p-10 rounded-3xl transition-all duration-500
+        ${theme === 'dark'
+          ? 'bg-slate-900/40 border border-white/10 shadow-[0_0_40px_-10px_rgba(16,185,129,0.15)] backdrop-blur-xl'
+          : 'bg-white/70 border border-white/60 shadow-2xl shadow-slate-200/50 backdrop-blur-md'
+        }
+        animate-in fade-in duration-700 flex flex-col h-[80vh]
+      `}>
+        <div className="text-center mb-4 flex-shrink-0">
+          <h2 className="text-sm font-bold tracking-[0.2em] text-zillion-400 uppercase mb-1 transition-colors duration-300">ZILLION</h2>
+          <h1 className={`text-xl font-bold transition-colors duration-300 ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>Assign Your Budget</h1>
         </div>
 
-        <div className="sticky top-0 z-20 -mx-6 -mt-2 border-b border-gray-200 bg-white/95 px-6 py-4 shadow-sm backdrop-blur-sm sm:-mx-8 sm:px-8">
-          <div className={`rounded-lg border p-4 transition-colors duration-300 ${remainingRounded < 0 ? 'bg-red-50 border-red-200' : 'bg-emerald-50 border-[#3DDC97]'}`}>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-              <div className="flex items-center justify-between w-full sm:w-auto gap-4">
-                <span className={`text-lg font-bold ${remainingRounded < 0 ? 'text-red-800' : 'text-emerald-800'}`}>Remaining to Budget:</span>
-                <span className={`text-3xl font-bold ${remainingRounded < 0 ? 'text-red-600' : 'text-[#3DDC97]'}`}>{formatCurrency(remainingToBudget)}</span>
-              </div>
-              <div className="text-sm font-medium text-right">
-                {remainingRounded > 0 && <span className="text-emerald-700 flex items-center justify-end"><ArrowDownCircle className="w-4 h-4 mr-1" /> You have money left to assign!</span>}
-                {remainingRounded < 0 && <span className="text-red-700 flex items-center justify-end"><AlertTriangle className="w-4 h-4 mr-1" /> You've budgeted too much.</span>}
-                {remainingRounded === 0 && <span className="text-[#3DDC97] flex items-center justify-end"><Check className="w-5 h-5 mr-1" /> Perfect! Every dollar has a job.</span>}
-              </div>
-            </div>
-          </div>
+        {/* Sticky Header */}
+        <div className={`sticky top-0 z-10 p-3 rounded-lg mb-4 flex justify-between items-center shadow-md border ${remainingRounded >= 0 ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800'}`}>
+           <span className="text-sm font-bold">Remaining to Budget:</span>
+           <span className="text-lg font-mono font-bold">{formatCurrency(remainingToBudget)}</span>
+           {remainingRounded > 0 && <span className="text-[10px] opacity-70 hidden sm:inline">You have money left to assign!</span>}
         </div>
 
-        <div className="mt-8 space-y-6">
-          {categories.map((category) => (
-            <div key={category.id} className="rounded-lg border border-gray-200 overflow-hidden">
-              <h3 className="bg-slate-50 px-4 py-3 text-lg font-semibold text-gray-900 border-b border-gray-200">{category.name}</h3>
-              <ul className="divide-y divide-gray-200 p-0 bg-white">
-                {category.subcategories.map((sub) => {
-                  const isLinked = !!sub.linkedDebtId;
-                  const budgetValue = isLinked ? debts.find((d) => d.id === sub.linkedDebtId)?.monthlyPayment || 0 : sub.budgeted;
-                  return (
-                    <li key={sub.id} className="flex flex-col items-start gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 hover:bg-slate-50 transition-colors">
-                      <div>
-                        <div className="flex items-center">{isLinked && <Link2 className="mr-2 h-4 w-4 text-[#3DDC97]" />}<span className="text-base font-medium text-gray-800">{sub.name}</span></div>
-                        <div className="mt-1"><span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${sub.type === 'expense' ? 'bg-blue-100 text-blue-800' : 'bg-emerald-100 text-emerald-800'}`}>{sub.type === 'expense' ? 'Expense' : 'Sinking Fund'}</span>{isLinked && <span className="ml-2 text-xs text-gray-400 italic">Linked to Debt</span>}</div>
-                      </div>
-                      <div className="w-full sm:w-auto sm:max-w-xs">
-                        <BudgetInput value={isLinked ? (debts.find((d) => d.id === sub.linkedDebtId)?.monthlyPayment || 0) + (debts.find((d) => d.id === sub.linkedDebtId)?.extraMonthlyPayment || 0) : budgetValue} onChange={(newValue) => handleBudgetChange(category.id, sub.id, newValue)} disabled={isLinked} />
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          ))}
+        <div className="flex-grow overflow-y-auto pr-2 space-y-6">
+           {categories.map(cat => (
+             <div key={cat.id} className={`rounded-lg border overflow-hidden ${theme === 'dark' ? 'border-slate-700 bg-slate-900/20' : 'border-slate-200 bg-white'}`}>
+                <div className={`px-4 py-2 font-bold text-sm ${theme === 'dark' ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-800'}`}>{cat.name}</div>
+                <div>
+                   {cat.subcategories.map((sub, idx) => {
+                     const isLinked = !!sub.linkedDebtId;
+                     const budgetValue = isLinked ? (debts.find((d) => d.id === sub.linkedDebtId)?.monthlyPayment || 0) + (debts.find((d) => d.id === sub.linkedDebtId)?.extraMonthlyPayment || 0) : sub.budgeted;
+                     
+                     return (
+                       <div key={sub.id} className={`p-3 flex justify-between items-center ${idx !== cat.subcategories.length - 1 ? `border-b ${theme === 'dark' ? 'border-slate-700' : 'border-slate-100'}` : ''}`}>
+                           <div>
+                              <div className="flex items-center gap-2">
+                                {isLinked && <Link2 size={10} className="text-zillion-500" />}
+                                <span className={`text-sm font-medium ${theme === 'dark' ? 'text-slate-300' : 'text-slate-800'}`}>{sub.name}</span>
+                              </div>
+                              <span className={`text-[9px] uppercase px-1 rounded ${sub.type === 'expense' ? 'bg-blue-50 text-blue-600' : 'bg-green-50 text-green-600'}`}>{sub.type === 'expense' ? 'Expense' : 'Sinking Fund'} {isLinked && '• Linked to Debt'}</span>
+                           </div>
+                           <div className="flex items-center gap-2">
+                              <span className="text-slate-400 text-xs">$</span>
+                              <input 
+                                type="number" 
+                                className={`w-24 text-right p-1 rounded border bg-transparent outline-none focus:border-zillion-400 ${theme === 'dark' ? 'border-slate-600 text-white' : 'border-slate-300 text-slate-800'}`} 
+                                placeholder="0.00"
+                                value={budgetValue}
+                                onChange={(e) => !isLinked && handleBudgetChange(cat.id, sub.id, parseFloat(e.target.value) || 0)}
+                                disabled={isLinked}
+                              />
+                           </div>
+                       </div>
+                     );
+                   })}
+                </div>
+             </div>
+           ))}
         </div>
-        <div className="flex justify-between pt-8 mt-8 border-t">
-          <button type="button" onClick={onBack} className="inline-flex items-center rounded-md border border-gray-300 bg-white px-10 py-2 text-sm font-bold text-[#3DDC97] shadow-sm hover:bg-gray-50">BACK</button>
-          <button type="button" onClick={handleFinishClick} disabled={remainingRounded < 0} className="inline-flex items-center rounded-md border border-transparent bg-[#3DDC97] px-10 py-2 text-sm font-bold text-white shadow-sm hover:bg-emerald-600 disabled:bg-gray-300 disabled:cursor-not-allowed">
-            {remainingRounded > 0 ? <>ASSIGN REMAINING <ArrowRight className="ml-2 h-5 w-5" /></> : <>FINISH SETUP <Check className="ml-2 h-5 w-5" /></>}
-          </button>
-        </div>
+
+        <div className={`mt-4 pt-4 border-t flex justify-between flex-shrink-0 ${theme === 'dark' ? 'border-slate-700' : 'border-slate-200'}`}>
+             <Button variant="outline" onClick={onBack} className="px-6 uppercase font-bold text-xs border-zillion-400/60 text-zillion-500 hover:bg-zillion-50 dark:hover:bg-zillion-400/10 dark:text-zillion-400">BACK</Button>
+             <Button variant="primary" onClick={handleFinishClick} disabled={remainingRounded < 0} className="uppercase font-bold text-xs bg-zillion-400 text-white hover:bg-zillion-500 px-6 flex items-center gap-2">
+                {remainingRounded > 0 ? <>ASSIGN REMAINING <ArrowRight size={14}/></> : <>FINISH SETUP <Check size={14}/></>}
+             </Button>
+         </div>
       </div>
-    </>
+    </div>
   );
 }
 
-// Step 13
-export function WizardStep7_Complete({ onGoToDashboard, onStartOver }) {
+// --- STEP 13: COMPLETE ---
+export function WizardStep7_Complete({ onGoToDashboard, onStartOver, theme, toggleTheme }) {
   return (
-    <div className="rounded-lg bg-white p-6 shadow-md sm:p-8 text-center">
-      <Check className="mx-auto h-16 w-16 text-green-500 bg-green-100 rounded-full p-2" />
-      <h2 className="mt-6 mb-4 text-2xl font-semibold text-gray-800">Budget Setup Complete!</h2>
-      <p className="mb-8 text-gray-600">You've successfully set up your budget. You can now move on to tracking your expenses.</p>
-      <div className="flex justify-center gap-4">
-        <button type="button" onClick={onStartOver} className="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">Start Over (Reset)</button>
-        <button type="button" onClick={onGoToDashboard} className="inline-flex items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700">Go to Dashboard <ArrowRight className="ml-2 h-5 w-5" /></button>
+    <div className={`
+      min-h-screen w-full flex items-center justify-center p-4 relative transition-colors duration-1000
+      ${theme === 'dark' ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-800'}
+    `}>
+      <AmbientBackground theme={theme} />
+      <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
+
+      <div className={`
+        w-full max-w-md p-8 sm:p-10 rounded-3xl transition-all duration-500
+        ${theme === 'dark'
+          ? 'bg-slate-900/40 border border-white/10 shadow-[0_0_40px_-10px_rgba(16,185,129,0.15)] backdrop-blur-xl'
+          : 'bg-white/70 border border-white/60 shadow-2xl shadow-slate-200/50 backdrop-blur-md'
+        }
+        text-center animate-in fade-in duration-700
+      `}>
+        <div className="mx-auto h-20 w-20 bg-zillion-100 dark:bg-zillion-900/30 rounded-full flex items-center justify-center mb-6">
+           <Check className="h-10 w-10 text-zillion-500" />
+        </div>
+        <h2 className={`text-2xl font-semibold mb-4 transition-colors duration-300 ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>Budget Setup Complete!</h2>
+        <p className={`mb-8 transition-colors duration-300 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>You've successfully set up your budget. You can now move on to tracking your expenses.</p>
+        <div className="flex justify-center gap-4">
+          <Button variant="outline" onClick={onStartOver} className="uppercase font-bold text-xs border-zillion-400/60 text-zillion-500 hover:bg-zillion-50 dark:hover:bg-zillion-400/10 dark:text-zillion-400">Start Over</Button>
+          <Button variant="primary" onClick={onGoToDashboard} className="uppercase font-bold text-xs flex items-center gap-2">Go to Dashboard <ArrowRight size={14} /></Button>
+        </div>
       </div>
     </div>
   );

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { ArrowLeftRight, Plus, Edit3, Trash2 } from 'lucide-react';
+import { ArrowLeftRight, Plus, Edit3, Trash2, Check } from 'lucide-react';
 import { formatCurrency } from '../../utils/helpers';
 import { AccountForm, EditAccountModal } from '../../components/modals/AccountModals';
+import { Button } from '../../components/ui/Button';
 
 export default function AccountsView({
   accounts,
@@ -14,6 +15,7 @@ export default function AccountsView({
   mainSavingsAccountId,
   onMainSavingsAccountChange,
   onOpenTransferModal,
+  theme = 'light'
 }) {
   const [editingAccount, setEditingAccount] = useState(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -40,61 +42,76 @@ export default function AccountsView({
     setEditingAccount(null);
   };
 
-  return (
-    <>
-      <EditAccountModal isOpen={!!editingAccount} onClose={() => setEditingAccount(null)} onSave={handleEditAccount} account={editingAccount} />
-      
-      <div className="rounded-lg bg-white p-6 shadow-md">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
-          <h2 className="text-2xl font-semibold text-gray-800">Bank Accounts</h2>
-          <div className="flex gap-2 mt-4 sm:mt-0">
-            <button type="button" onClick={onOpenTransferModal} className="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">
-              <ArrowLeftRight className="-ml-1 mr-2 h-5 w-5" /> Transfer Money
-            </button>
-            <button type="button" onClick={() => setIsFormOpen(true)} className="inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700">
-              <Plus className="h-5 w-5" />
-            </button>
-          </div>
+  const CardRow = ({ acc }) => {
+    const isDefault = acc.id === defaultAccountId;
+    const isSinking = acc.id === savingsAccountId;
+    const isMainSavings = acc.id === mainSavingsAccountId;
+
+    return (
+      <div key={acc.id} className={`relative flex flex-col sm:flex-row sm:items-center gap-4 p-5 rounded-2xl border transition-all duration-300 
+        ${theme === 'dark' 
+          ? 'bg-slate-900/40 border-white/5 hover:bg-slate-800/40' 
+          : 'bg-white/70 border-white/60 shadow-sm hover:bg-white/80'
+        }`}>
+        
+        {/* Name & Balance */}
+        <div className="flex-grow min-w-0">
+          <h3 className={`font-bold text-lg truncate ${theme === 'dark' ? 'text-slate-200' : 'text-slate-800'}`}>{acc.name}</h3>
+          <p className={`font-mono text-sm ${theme === 'dark' ? 'text-zillion-400' : 'text-zillion-600'}`}>{formatCurrency(acc.balance)}</p>
         </div>
 
-        {isFormOpen && <AccountForm onAddAccount={handleAddAccount} />}
+        {/* Role Toggles */}
+        <div className="flex flex-wrap gap-2">
+          <button onClick={(e) => { e.stopPropagation(); onSetDefaultAccount(acc.id); }} className={`px-3 py-1 rounded-full text-xs font-bold transition-colors border ${isDefault ? 'bg-blue-500/10 text-blue-500 border-blue-500/50' : `text-slate-400 border-transparent ${theme === 'dark' ? 'hover:bg-slate-800' : 'hover:bg-slate-100'}`}`}>
+            Spending {isDefault && <Check className="inline w-3 h-3 ml-1" />}
+          </button>
+          <button onClick={(e) => { e.stopPropagation(); onSavingsAccountChange(acc.id); }} className={`px-3 py-1 rounded-full text-xs font-bold transition-colors border ${isSinking ? 'bg-green-500/10 text-green-500 border-green-500/50' : `text-slate-400 border-transparent ${theme === 'dark' ? 'hover:bg-slate-800' : 'hover:bg-slate-100'}`}`}>
+            Sinking {isSinking && <Check className="inline w-3 h-3 ml-1" />}
+          </button>
+          <button onClick={(e) => { e.stopPropagation(); onMainSavingsAccountChange(acc.id); }} className={`px-3 py-1 rounded-full text-xs font-bold transition-colors border ${isMainSavings ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/50' : `text-slate-400 border-transparent ${theme === 'dark' ? 'hover:bg-slate-800' : 'hover:bg-slate-100'}`}`}>
+            Income {isMainSavings && <Check className="inline w-3 h-3 ml-1" />}
+          </button>
+        </div>
 
-        <div className="space-y-4 mt-6">
-          {accounts.length > 0 && (
-            <>
-              <div className="hidden sm:grid sm:grid-cols-12 sm:gap-4 sm:px-3">
-                <div className="sm:col-span-4 font-medium text-xs text-gray-500 uppercase tracking-wider">Account Name</div>
-                <div className="sm:col-span-2 text-center font-medium text-xs text-gray-500 uppercase tracking-wider">Default (Expenses)</div>
-                <div className="sm:col-span-2 text-center font-medium text-xs text-gray-500 uppercase tracking-wider">Sinking Funds</div>
-                <div className="sm:col-span-2 text-center font-medium text-xs text-gray-500 uppercase tracking-wider">Main Savings</div>
-                <div className="sm:col-span-2"></div>
-              </div>
+        {/* Actions */}
+        <div className="flex items-center gap-2 z-10">
+           <button onClick={(e) => { e.stopPropagation(); setEditingAccount(acc); }} className={`p-2 rounded-full transition-colors ${theme === 'dark' ? 'text-slate-400 hover:text-white hover:bg-slate-700' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'}`}>
+             <Edit3 className="w-4 h-4" />
+           </button>
+           <button onClick={(e) => { e.stopPropagation(); handleDeleteAccount(acc.id); }} className={`p-2 rounded-full transition-colors ${theme === 'dark' ? 'text-slate-400 hover:text-red-400 hover:bg-red-900/20' : 'text-slate-400 hover:text-red-600 hover:bg-red-50'}`}>
+             <Trash2 className="w-4 h-4" />
+           </button>
+        </div>
 
-              {accounts.map((acc) => (
-                <div key={acc.id} className={`relative grid grid-cols-1 sm:grid-cols-12 gap-y-2 sm:gap-4 items-center rounded-md border p-3 shadow-sm ${acc.id === defaultAccountId ? 'bg-indigo-50 border-indigo-200' : ''} ${acc.id === savingsAccountId ? 'bg-green-50 border-green-200' : ''} ${acc.id === mainSavingsAccountId ? 'bg-yellow-50 border-yellow-200' : ''} ${acc.id !== defaultAccountId && acc.id !== savingsAccountId && acc.id !== mainSavingsAccountId ? 'bg-white border-gray-200' : ''}`}>
-                  <div className="sm:col-span-4 font-medium text-gray-900">{acc.name}</div>
-                  <div className="sm:col-span-2 flex items-center justify-center"><input type="radio" name="default-account-main" checked={acc.id === defaultAccountId} onChange={() => onSetDefaultAccount(acc.id)} onClick={e => e.stopPropagation()} className="h-5 w-5 text-indigo-600 z-10" /></div>
-                  <div className="sm:col-span-2 flex items-center justify-center"><input type="radio" name="savings-account-main" checked={acc.id === savingsAccountId} onChange={() => onSavingsAccountChange(acc.id)} onClick={e => e.stopPropagation()} className="h-5 w-5 text-green-600 z-10" /></div>
-                  <div className="sm:col-span-2 flex items-center justify-center"><input type="radio" name="main-savings-account-main" checked={acc.id === mainSavingsAccountId} onChange={() => onMainSavingsAccountChange(acc.id)} onClick={e => e.stopPropagation()} className="h-5 w-5 text-yellow-600 z-10" /></div>
-                  <div className="sm:col-span-2 flex items-center justify-end space-x-3 z-10">
-                    <span className="text-gray-700 text-sm sm:text-base">{formatCurrency(acc.balance)}</span>
-                    <button onClick={(e) => { e.stopPropagation(); setEditingAccount(acc); }} className="rounded-full p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50"><Edit3 className="h-4 w-4" /></button>
-                    <button onClick={(e) => { e.stopPropagation(); handleDeleteAccount(acc.id); }} className="rounded-full p-2 text-gray-400 hover:text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /></button>
-                  </div>
-                  <button onClick={() => onOpenAccountTransactions({ id: acc.id, name: acc.name })} className="absolute inset-0 z-0 w-full h-full rounded-md transition-colors hover:bg-gray-50/50"></button>
-                </div>
-              ))}
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-y-2 sm:gap-4 items-center rounded-md border border-dashed border-gray-300 p-3">
-                  <div className="sm:col-span-4 font-medium text-gray-500 italic">No Specific Account</div>
-                  <div className="sm:col-span-2"></div>
-                  <div className="sm:col-span-2 flex items-center justify-center"><input type="radio" name="savings-account-main" checked={!savingsAccountId} onChange={() => onSavingsAccountChange(null)} className="h-5 w-5 text-gray-400" /></div>
-                  <div className="sm:col-span-2 flex items-center justify-center"><input type="radio" name="main-savings-account-main" checked={!mainSavingsAccountId} onChange={() => onMainSavingsAccountChange(null)} className="h-5 w-5 text-gray-400" /></div>
-                  <div className="sm:col-span-2"></div>
-              </div>
-            </>
-          )}
+        {/* Click Area for Details */}
+        <button onClick={() => onOpenAccountTransactions({ id: acc.id, name: acc.name })} className="absolute inset-0 w-full h-full z-0" aria-label="View Transactions" />
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+      <EditAccountModal isOpen={!!editingAccount} onClose={() => setEditingAccount(null)} onSave={handleEditAccount} account={editingAccount} theme={theme} />
+      
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+        <h2 className={`text-2xl font-semibold ${theme === 'dark' ? 'text-slate-100' : 'text-slate-800'}`}>Bank Accounts</h2>
+        <div className="flex gap-3 mt-4 sm:mt-0">
+          <Button variant="outline" onClick={onOpenTransferModal} icon={<ArrowLeftRight className="w-4 h-4" />}>Transfer Money</Button>
+          <Button variant="primary" onClick={() => setIsFormOpen(!isFormOpen)} icon={<Plus className="w-4 h-4" />}>
+             {isFormOpen ? 'Close' : 'Add Account'}
+          </Button>
         </div>
       </div>
-    </>
+
+      {isFormOpen && <AccountForm onAddAccount={handleAddAccount} theme={theme} />}
+
+      <div className="space-y-4">
+        {accounts.length > 0 ? (
+          accounts.map((acc) => <CardRow key={acc.id} acc={acc} />)
+        ) : (
+          <p className={`text-center py-8 ${theme === 'dark' ? 'text-slate-500' : 'text-slate-400'}`}>No accounts added yet.</p>
+        )}
+      </div>
+    </div>
   );
 }

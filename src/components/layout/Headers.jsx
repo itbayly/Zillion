@@ -1,168 +1,125 @@
-import React, { useState, useMemo } from 'react';
-import { ChevronDown } from 'lucide-react';
+import React from 'react';
+import { Plus, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import { formatCurrency } from '../../utils/helpers';
-import { StatusPill } from '../ui/SharedUI';
+import { Button } from '../ui/Button';
 
-export default function CategoryCard({
-  category,
-  spentBySubCategory,
-  sinkingFundBalances,
-  debts,
-  onOpenTransactionDetails,
+export function HeaderBar({ 
+  userName, 
+  viewDate, 
+  monthlyDataKeys, 
+  setViewDate, 
+  onSimulateRollover, 
+  onOpenTransactionModal,
+  theme
 }) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  // Helper to format "2023-10" -> "October 2023"
+  const formatMonth = (key) => {
+    if (!key) return '';
+    const [year, month] = key.split('-');
+    const date = new Date(parseInt(year), parseInt(month) - 1);
+    return date.toLocaleString('default', { month: 'long', year: 'numeric' });
+  };
 
-  const { totalBudgeted, totalSpent, remaining } = useMemo(() => {
-    let b = 0;
-    let s = 0;
-    category.subcategories.forEach((sub) => {
-      // SKIP DEDUCTIONS FROM CARD MATH
-      if (sub.type === 'deduction') return;
+  const currentIndex = monthlyDataKeys.indexOf(viewDate);
+  const hasPrev = currentIndex > 0;
+  const hasNext = currentIndex < monthlyDataKeys.length - 1;
 
-      let subBudget = sub.budgeted || 0;
-      if (sub.linkedDebtId) {
-        const debt = debts.find((d) => d.id === sub.linkedDebtId);
-        if (debt)
-          subBudget = (debt.monthlyPayment || 0) + (debt.extraMonthlyPayment || 0);
-      }
-      b += subBudget;
-      s += spentBySubCategory[sub.id] || 0;
-    });
-    return { totalBudgeted: b, totalSpent: s, remaining: b - s };
-  }, [category, spentBySubCategory, debts]);
+  const handlePrev = () => {
+    if (hasPrev) setViewDate(monthlyDataKeys[currentIndex - 1]);
+  };
 
-  const progressPercent = totalBudgeted > 0 ? (totalSpent / totalBudgeted) * 100 : 0;
-
-  let statusColor = 'text-[#3DDC97]';
-  if (remaining < 0) {
-    statusColor = 'text-[#EF767A]';
-  } else if (progressPercent > 75) {
-    statusColor = 'text-[#FFB347]';
-  }
+  const handleNext = () => {
+    if (hasNext) setViewDate(monthlyDataKeys[currentIndex + 1]);
+  };
 
   return (
-    <div className="mb-6 w-full max-w-[924px] rounded-xl bg-white shadow-[0px_3px_20px_rgba(0,0,0,0.10)] transition-all">
-      {/* --- Main Category Header --- */}
-      <div className="cursor-pointer p-6" onClick={() => setIsExpanded(!isExpanded)}>
-        <div className="flex items-center justify-between">
-          <h3 className="font-montserrat text-[17px] font-bold uppercase text-[#4B5563]">{category.name}</h3>
-          <div className="flex items-center gap-4">
-            <span className="font-montserrat text-[11px] font-bold text-[#9CA3AF] uppercase">
-              SPENT: {formatCurrency(totalSpent)}
-            </span>
-            <span className={`font-montserrat text-[11px] font-bold uppercase ${statusColor}`}>
-              {remaining < 0
-                ? `${formatCurrency(Math.abs(remaining))} OVER`
-                : `${formatCurrency(remaining)} REMAINING`}
-            </span>
-            <ChevronDown className={`h-6 w-6 text-gray-400 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
-          </div>
+    <div className="flex items-center justify-between w-full max-w-[924px] mb-8">
+      <div className="flex items-center gap-4">
+        {/* Date Navigation */}
+        <div className={`flex items-center rounded-xl border p-1 shadow-sm backdrop-blur-md transition-all duration-300 ${theme === 'dark' ? 'bg-slate-900/40 border-white/10' : 'bg-white/70 border-white/60'}`}>
+          <button 
+            onClick={handlePrev} 
+            disabled={!hasPrev}
+            className={`p-2 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-white/10 text-slate-400 disabled:opacity-30' : 'hover:bg-slate-100 text-slate-500 disabled:opacity-30'}`}
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <span className={`px-4 font-bold min-w-[160px] text-center select-none transition-colors ${theme === 'dark' ? 'text-slate-200' : 'text-slate-700'}`}>
+            {formatMonth(viewDate)}
+          </span>
+          <button 
+            onClick={handleNext} 
+            disabled={!hasNext}
+            className={`p-2 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-white/10 text-slate-400 disabled:opacity-30' : 'hover:bg-slate-100 text-slate-500 disabled:opacity-30'}`}
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
         </div>
+
+        {/* Simulate Rollover (Dev Tool) */}
+        <button 
+          onClick={onSimulateRollover}
+          className="text-xs font-medium text-zillion-500 hover:text-zillion-600 underline decoration-dashed transition-colors"
+        >
+          Simulate Next Month
+        </button>
       </div>
 
-      {/* --- Expanded Subcategories --- */}
-      {isExpanded && (
-        <div className="border-t border-gray-200 px-6 pb-6 pt-2">
-          <div className="flex flex-col gap-2">
-            {category.subcategories.map((sub) => {
-              const isDebt = !!sub.linkedDebtId;
-              const isFund = sub.type === 'sinking_fund';
-              const isDeduction = sub.type === 'deduction';
-              
-              const subSpent = spentBySubCategory[sub.id] || 0;
-              let subBudgeted = sub.budgeted || 0;
-              
-              if (isDebt) {
-                const debt = debts.find((d) => d.id === sub.linkedDebtId);
-                if (debt) subBudgeted = (debt.monthlyPayment || 0) + (debt.extraMonthlyPayment || 0);
-              }
+      {/* Add Transaction Button */}
+      <div className="flex items-center gap-4">
+        <span className={`text-sm font-medium hidden sm:block transition-colors ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>
+          Welcome back, <span className={`font-bold ${theme === 'dark' ? 'text-slate-200' : 'text-slate-900'}`}>{userName}</span>
+        </span>
+        <Button
+          variant="primary"
+          onClick={onOpenTransactionModal}
+          icon={<Plus className="w-5 h-5" />}
+          className="shadow-lg shadow-zillion-400/20"
+        >
+          ADD NEW
+        </Button>
+      </div>
+    </div>
+  );
+}
 
-              const currentBalance = isFund ? sinkingFundBalances[sub.id] || 0 : 0;
-              
-              let subProgress = (subBudgeted > 0 && !isDeduction) ? (subSpent / subBudgeted) * 100 : 0;
-              let subBarColor = 'bg-[#3DDC97]';
-              let subStatusColor = 'text-[#3DDC97]';
-              let subStatusText = '';
+export function HeroBar({ categories, transactions, income, savingsGoal, theme }) {
+  // Calculate Totals
+  const totalIncome = (income?.source1 || 0) + (income?.source2 || 0);
+  
+  const totalSpent = transactions.reduce((sum, tx) => {
+    const amt = parseFloat(tx.amount) || 0;
+    return tx.isIncome ? sum : sum + amt;
+  }, 0);
 
-              if (isDeduction) {
-                 // GHOST ROW LOGIC
-                 subStatusColor = 'text-gray-400';
-                 subStatusText = 'AUTO-DEDUCTED';
-                 subBarColor = 'bg-gray-200';
-              } else if (isDebt) {
-                const subRemaining = subBudgeted - subSpent;
-                subBarColor = 'bg-[#A78BFA]';
-                subStatusColor = 'text-[#7C3AED]';
-                subStatusText = `${formatCurrency(subRemaining)} LEFT TO PAY`;
-              } else if (isFund) {
-                const subRemaining = currentBalance;
-                subBarColor = 'bg-[#60A5FA]';
-                if (subRemaining < 0) {
-                  subStatusColor = 'text-[#EF767A]';
-                  subStatusText = `${formatCurrency(Math.abs(subRemaining))} OVERDRAWN`;
-                } else {
-                  subStatusColor = 'text-[#60A5FA]';
-                  subStatusText = `${formatCurrency(subRemaining)} AVAILABLE`;
-                }
-              } else {
-                const subRemaining = subBudgeted - subSpent;
-                if (subRemaining < 0) {
-                  subStatusColor = 'text-[#EF767A]';
-                  subBarColor = 'bg-[#EF767A]';
-                  subStatusText = `${formatCurrency(Math.abs(subRemaining))} OVER BUDGET`;
-                } else {
-                  subStatusText = `${formatCurrency(subRemaining)} REMAINING`;
-                  if (subProgress > 75) {
-                      subStatusColor = 'text-[#FFB347]';
-                      subBarColor = 'bg-[#FFB347]';
-                  }
-                }
-              }
+  const totalBudgeted = categories.reduce((acc, cat) => {
+    return acc + cat.subcategories.reduce((subAcc, sub) => subAcc + (sub.budgeted || 0), 0);
+  }, 0);
 
-              return (
-                <div key={sub.id} className={`relative w-full border-t border-gray-100 py-4 first:border-t-0 ${isDeduction ? 'opacity-70' : ''}`}>
-                  <button
-                    className="absolute inset-0 z-10 w-full cursor-pointer opacity-0"
-                    onClick={() => !isDeduction && onOpenTransactionDetails({ type: 'subcategory', id: sub.id, name: sub.name })}
-                    title={isDeduction ? "Deductions are automatic" : "View transactions"}
-                  />
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <span className={`font-montserrat text-[15px] font-bold ${isDeduction ? 'text-gray-500' : 'text-[#4B5563]'}`}>{sub.name}</span>
-                      {isDebt && <StatusPill type="debt" />}
-                      {isFund && <StatusPill type="fund" />}
-                      {isDeduction && (
-                        <div className="ml-3 flex items-center justify-center rounded-xl bg-gray-100 px-3 py-1">
-                          <span className="font-montserrat text-[10px] font-bold text-gray-500">PAYSTUB</span>
-                        </div>
-                      )}
-                    </div>
-                    <span className={`font-montserrat text-[13px] font-bold ${subStatusColor}`}>{subStatusText}</span>
-                  </div>
+  const remaining = totalIncome - totalSpent - (savingsGoal || 0);
 
-                  <div className="mt-1 flex justify-between font-montserrat text-[13px] font-normal text-[#4B5563]">
-                    {isDeduction ? (
-                        <span className="italic text-gray-400">Value: {formatCurrency(subBudgeted)}</span>
-                    ) : (
-                        <>
-                            <span>{formatCurrency(subSpent)} {isDebt ? 'Paid' : 'Spent'} {isFund ? ` | ${formatCurrency(subBudgeted)} Added` : ''}</span>
-                            <span>{isDebt ? 'Monthly Payment' : 'Budgeted'}: {formatCurrency(subBudgeted)}</span>
-                        </>
-                    )}
-                  </div>
+  const cardClass = `p-5 rounded-2xl border backdrop-blur-md transition-all duration-300 ${theme === 'dark' ? 'bg-slate-900/40 border-white/5' : 'bg-white/70 border-white/60 shadow-sm'}`;
+  const labelClass = `text-xs font-bold uppercase tracking-wider ${theme === 'dark' ? 'text-slate-500' : 'text-slate-400'}`;
+  const valueClass = `text-2xl font-bold mt-1 ${theme === 'dark' ? 'text-slate-100' : 'text-slate-800'}`;
 
-                  {!isDeduction && (
-                    <div className="mt-3 h-[8px] w-full rounded-full bg-[#E5E7EB]">
-                      <div className={`h-[8px] rounded-full ${subBarColor}`} style={{ width: `${Math.min(subProgress, 100)}%` }} />
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+  return (
+    <div className="w-full max-w-[924px] grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+      <div className={cardClass}>
+        <p className={labelClass}>Total Income</p>
+        <p className={valueClass}>{formatCurrency(totalIncome)}</p>
+      </div>
+      <div className={cardClass}>
+        <p className={labelClass}>Total Spent</p>
+        <p className="text-2xl font-bold text-red-500 mt-1">{formatCurrency(totalSpent)}</p>
+      </div>
+      <div className={cardClass}>
+        <p className={labelClass}>Budgeted</p>
+        <p className="text-2xl font-bold text-blue-500 mt-1">{formatCurrency(totalBudgeted)}</p>
+      </div>
+      <div className={`p-5 rounded-2xl border backdrop-blur-md transition-all duration-300 ${theme === 'dark' ? 'bg-zillion-500/10 border-zillion-500/30' : 'bg-zillion-400 border-zillion-500 shadow-lg shadow-zillion-400/20'}`}>
+        <p className={`text-xs font-bold uppercase tracking-wider ${theme === 'dark' ? 'text-zillion-400' : 'text-zillion-900/80'}`}>Safe to Spend</p>
+        <p className={`text-2xl font-bold mt-1 ${theme === 'dark' ? 'text-zillion-400' : 'text-white'}`}>{formatCurrency(remaining)}</p>
+      </div>
     </div>
   );
 }
