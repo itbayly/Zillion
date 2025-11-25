@@ -2,7 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { Plus, Trash2, Calendar, RefreshCw } from 'lucide-react';
 import { formatCurrency, getTodayDate } from '../../utils/helpers';
 import { Button } from '../ui/Button';
-import { InputField, GlassCurrencyInput } from '../ui/FormInputs';
+import { GlassCurrencyInput } from '../ui/FormInputs';
+import { InputField } from '../ui/InputField';
 import { ModalWrapper } from '../ui/SharedUI';
 import { nanoid } from 'nanoid';
 
