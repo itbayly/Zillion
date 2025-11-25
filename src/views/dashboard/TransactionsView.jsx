@@ -47,7 +47,7 @@ export default function TransactionsView({
   const [priceFilterMode, setPriceFilterMode] = useState('gt');
   const [priceFilterValue, setPriceFilterValue] = useState('');
 
-  const { selectedYears, setSelectedYears, availableYears } = useTransactionFilters(allTransactions);
+  const { selectedYears, setSelectedYears, selectedMonths, setSelectedMonths, availableYears, availableMonths } = useTransactionFilters(allTransactions);
 
   // Set default year to current if available
   useEffect(() => {
@@ -103,15 +103,16 @@ export default function TransactionsView({
           const amt = parseFloat(tx.amount) || 0;
           return priceFilterMode === 'gt' ? amt > priceVal : amt < priceVal;
         }
-        if (selectedYears.length > 0) {
-          const year = new Date(tx.date + 'T12:00:00').getFullYear();
-          if (!selectedYears.includes(year)) return false;
-        }
+        
+        // Date Filters
+        const txDate = new Date(tx.date + 'T12:00:00');
+        if (selectedYears.length > 0 && !selectedYears.includes(txDate.getFullYear())) return false;
+        if (selectedMonths.length > 0 && !selectedMonths.includes(txDate.getMonth())) return false;
         
         return true;
       })
       .sort((a, b) => new Date(b.date) - new Date(a.date));
-  }, [allTransactions, searchQuery, selectedCategories, selectedSubCategories, priceFilterValue, priceFilterMode, selectedYears, subCategoryMap, categories]);
+  }, [allTransactions, searchQuery, selectedCategories, selectedSubCategories, priceFilterValue, priceFilterMode, selectedYears, selectedMonths, subCategoryMap, categories]);
 
   const handleExport = (filteredOnly) => {
     exportTransactionsToCSV(filteredOnly ? filteredTransactions : allTransactions, subCategoryMap, accountMap, 'transactions-export');
@@ -123,6 +124,8 @@ export default function TransactionsView({
   const headerText = theme === 'dark' ? 'text-slate-200' : 'text-slate-800';
   const subText = theme === 'dark' ? 'text-slate-400' : 'text-slate-500';
   const inputBg = theme === 'dark' ? 'bg-slate-800/50 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-800';
+  
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
   return (
     <div className="space-y-6">
@@ -169,11 +172,22 @@ export default function TransactionsView({
                 </div>
             </div>
             <div>
-                <label className={`text-xs font-bold uppercase mb-2 block ${subText}`}>Year</label>
-                <div className="flex flex-wrap gap-2">
-                    {availableYears.map(y => (
-                        <button key={y} onClick={() => setSelectedYears(prev => prev.includes(y) ? prev.filter(i => i !== y) : [...prev, y])} className={`px-2 py-1 text-xs rounded border transition-colors ${selectedYears.includes(y) ? 'bg-zillion-500 text-white border-zillion-500' : `border-transparent ${inputBg}`}`}>{y}</button>
-                    ))}
+                <label className={`text-xs font-bold uppercase mb-2 block ${subText}`}>Date</label>
+                <div className="flex flex-col gap-2">
+                    {/* Year Buttons */}
+                    <div className="flex flex-wrap gap-2">
+                        {availableYears.map(y => (
+                            <button key={y} onClick={() => setSelectedYears(prev => prev.includes(y) ? prev.filter(i => i !== y) : [...prev, y])} className={`px-2 py-1 text-xs rounded border transition-colors ${selectedYears.includes(y) ? 'bg-zillion-500 text-white border-zillion-500' : `border-transparent ${inputBg}`}`}>{y}</button>
+                        ))}
+                    </div>
+                    {/* Month Buttons */}
+                    <div className="flex flex-wrap gap-1">
+                        {availableMonths.map(m => (
+                            <button key={m} onClick={() => setSelectedMonths(prev => prev.includes(m) ? prev.filter(i => i !== m) : [...prev, m])} className={`px-1.5 py-0.5 text-[10px] uppercase rounded border transition-colors ${selectedMonths.includes(m) ? 'bg-zillion-500 text-white border-zillion-500' : `border-transparent ${inputBg} opacity-70 hover:opacity-100`}`}>
+                                {monthNames[m]}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
          </div>
