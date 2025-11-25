@@ -1,8 +1,8 @@
-
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, onSnapshot, setDoc, getDoc } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
+import { nanoid } from 'nanoid';
 
 // --- New UI Components ---
 import { ThemeToggle } from './components/ui/ThemeToggle';
@@ -46,6 +46,7 @@ import TransactionsView from './views/dashboard/TransactionsView';
 import Sidebar from './components/layout/Sidebar';
 import { HeaderBar, HeroBar } from './components/layout/Headers';
 import { RecentActivityCard, UpcomingBillsCard } from './components/cards/Widgets';
+import RecurringTransactionsWidget from './components/cards/RecurringWidget';
 
 // --- 5. Modals ---
 import { JoinBudgetModal, ConfirmLeaveModal, ConfirmRemoveModal } from './components/modals/SharingModals';
@@ -188,7 +189,6 @@ function BudgetApp({ userId, onSignOut, joinBudgetId }) {
 
   // 4. Rollover Check
   useEffect(() => {
-    // Updated step check: Now 13 steps total (steps 0-13)
     const isSetupComplete = typeof budgetData.currentStep !== 'number' || budgetData.currentStep > 13;
     if (isDataLoaded && isSetupComplete) {
       const currentMonthKey = getYearMonthKey();
@@ -343,33 +343,28 @@ function BudgetApp({ userId, onSignOut, joinBudgetId }) {
     updateBudget({ monthlyData: newMonthlyData });
   };
 
-  // NEW: Save Deduction Data (Create Category)
   const handleSaveDeductions = (deductionsList) => {
     const monthKey = getWriteKey();
     const newMonthlyData = { ...budgetData.monthlyData };
     const currentMonth = newMonthlyData[monthKey] || getNewMonthEntry();
     let newCategories = [...currentMonth.categories];
 
-    // Check if "Paycheck Deductions" category exists
     let dedCatIndex = newCategories.findIndex(c => c.name === "Paycheck Deductions");
     if (dedCatIndex === -1) {
-      // Create new
       const newCat = { id: crypto.randomUUID(), name: "Paycheck Deductions", subcategories: [] };
       newCategories.push(newCat);
       dedCatIndex = newCategories.length - 1;
     }
 
-    // Overwrite subcategories with new selection
     const dedCat = newCategories[dedCatIndex];
     dedCat.subcategories = deductionsList.map(d => ({
       id: crypto.randomUUID(),
       name: d.name,
-      type: 'deduction', // Special type
-      budgeted: d.amount, // This is the "Amount Per Check" for now, ideally mult by freq
+      type: 'deduction',
+      budgeted: d.amount,
       linkedDebtId: null
     }));
 
-    // Update Categories
     newMonthlyData[monthKey] = { ...currentMonth, categories: newCategories };
     updateBudget({ monthlyData: newMonthlyData });
   };
@@ -403,7 +398,18 @@ function BudgetApp({ userId, onSignOut, joinBudgetId }) {
     updateBudget({ monthlyData: newMonthlyData });
   };
 
-  // --- Transaction Handlers (Existing logic kept) ---
+  // --- Recurring Transactions Logic ---
+  const handleAddRecurring = (item) => {
+    const newList = [...(budgetData.recurringTransactions || []), { ...item, id: nanoid() }];
+    updateBudget({ recurringTransactions: newList });
+  };
+
+  const handleDeleteRecurring = (id) => {
+    const newList = (budgetData.recurringTransactions || []).filter(i => i.id !== id);
+    updateBudget({ recurringTransactions: newList });
+  };
+
+  // --- Transaction Handlers ---
   const handleSaveTransaction = (newTransaction) => {
     let newDebts = [...(budgetData.debts || [])];
     let newBankAccounts = [...budgetData.bankAccounts];
@@ -509,7 +515,6 @@ function BudgetApp({ userId, onSignOut, joinBudgetId }) {
     setIsTransferModalOpen(false);
   };
 
-  // Payday Confirmation Logic
   const handlePaydayConfirm = (actualAmount, diffAction) => {
     const incomeTx = {
       id: crypto.randomUUID(),
@@ -580,7 +585,7 @@ function BudgetApp({ userId, onSignOut, joinBudgetId }) {
 
   // --- Render Helpers ---
   const currentMonthData = useMemo(() => {
-    const monthKey = (typeof budgetData.currentStep !== 'number' || budgetData.currentStep > 8) ? viewDate : Object.keys(budgetData.monthlyData)[0];
+    const monthKey = (typeof budgetData.currentStep !== 'number' || budgetData.currentStep > 13) ? viewDate : Object.keys(budgetData.monthlyData)[0];
     return budgetData.monthlyData[monthKey] || getNewMonthEntry();
   }, [budgetData.monthlyData, viewDate, budgetData.currentStep]);
 
@@ -593,7 +598,6 @@ function BudgetApp({ userId, onSignOut, joinBudgetId }) {
       const debt = budgetData.debts.find(d => d.id === sub.linkedDebtId);
       return sAcc + (debt ? (debt.monthlyPayment || 0) + (debt.extraMonthlyPayment || 0) : 0);
     }
-    // EXCLUDE DEDUCTIONS
     if (sub.type === 'deduction') return sAcc;
     return sAcc + (sub.budgeted || 0);
   }, 0), 0);
@@ -680,8 +684,20 @@ function BudgetApp({ userId, onSignOut, joinBudgetId }) {
 
                 <aside className="sticky top-6 h-[calc(100vh-48px)] overflow-y-auto no-scrollbar pt-2">
                   <div className="flex flex-col gap-6">
-                    <RecentActivityCard transactions={currentMonthData.transactions} categories={currentMonthData.categories} theme={theme} />
-                    <UpcomingBillsCard debts={budgetData.debts} theme={theme} />
+                    {activeTab === 'transactions' ? (
+                      <RecurringTransactionsWidget 
+                        recurringTransactions={budgetData.recurringTransactions} 
+                        onAdd={handleAddRecurring} 
+                        onDelete={handleDeleteRecurring}
+                        categories={currentMonthData.categories}
+                        theme={theme}
+                      />
+                    ) : (
+                      <>
+                        <RecentActivityCard transactions={currentMonthData.transactions} categories={currentMonthData.categories} theme={theme} />
+                        <UpcomingBillsCard debts={budgetData.debts} theme={theme} />
+                      </>
+                    )}
                   </div>
                 </aside>
               </div>
