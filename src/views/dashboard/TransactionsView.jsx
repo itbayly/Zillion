@@ -317,9 +317,9 @@ export default function TransactionsView({
   const isFilterActive = searchQuery !== '' || selectedCategories.length > 0 || selectedSubCategories.length > 0 || priceFilterValue !== '';
 
   // CSS
-  const cardClass = `rounded-3xl border backdrop-blur-md transition-all duration-500 overflow-hidden flex flex-col flex-grow ${theme === 'dark' ? 'bg-slate-900/40 border-white/10 shadow-lg' : 'bg-white/70 border-white/60 shadow-lg'}`;
-  const headerText = theme === 'dark' ? 'text-slate-200' : 'text-slate-800';
-  const subText = theme === 'dark' ? 'text-slate-400' : 'text-slate-500';
+  const cardClass = "glass-card overflow-hidden flex flex-col flex-grow";
+  const headerText = "text-slate-800 dark:text-slate-200";
+  const subText = "text-slate-500 dark:text-slate-400";
   const inputBg = theme === 'dark' ? 'bg-slate-800/50 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-800';
   const gridClass = "grid grid-cols-[50px_110px_1.5fr_1.5fr_1fr_50px] gap-4 items-center px-4 py-3";
   const checkboxClass = `w-4 h-4 rounded border cursor-pointer ${theme === 'dark' ? 'border-slate-500 bg-slate-700 accent-zillion-400' : 'border-slate-300 accent-zillion-500'}`;
@@ -346,7 +346,7 @@ export default function TransactionsView({
               {searchQuery && <button onClick={() => setSearchQuery('')}><X className="w-4 h-4 opacity-50 hover:opacity-100" /></button>}
            </div>
            <Button variant="outline" onClick={() => setIsExportModalOpen(true)} icon={<FileDown className="w-4 h-4" />} className="h-[42px]">Export</Button>
-           <Button variant="primary" onClick={onOpenTransactionModal} className="w-[42px] h-[42px] px-0 flex items-center justify-center shadow-lg shadow-zillion-400/20"><Plus className="w-5 h-5" /></Button>
+           <Button variant="primary" onClick={onOpenTransactionModal} className="w-[42px] h-[42px] px-0 flex items-center justify-center shadow-lg shadow-zillion-400/20 text-white"><Plus className="w-5 h-5" /></Button>
         </div>
       </div>
 

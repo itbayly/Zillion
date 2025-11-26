@@ -15,14 +15,7 @@ export function WizardStep_Welcome({ onStartNew, onStartJoin, theme, toggleTheme
       <AmbientBackground theme={theme} />
       <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
       
-      <div className={`
-        w-full max-w-md p-8 sm:p-10 rounded-3xl transition-all duration-500
-        ${theme === 'dark'
-          ? 'bg-slate-900/40 border border-white/10 shadow-[0_0_40px_-10px_rgba(16,185,129,0.15)] backdrop-blur-xl'
-          : 'bg-white/70 border border-white/60 shadow-2xl shadow-slate-200/50 backdrop-blur-md'
-        }
-        text-center animate-in fade-in duration-700
-      `}>
+      <div className="wizard-card text-center">
         <h2 className={`text-2xl font-medium mb-1 transition-colors duration-300 ${theme === 'dark' ? 'text-slate-300' : 'text-slate-800'}`}>WELCOME TO</h2>
         <h1 className="text-5xl font-bold tracking-tight text-zillion-400 mb-6 transition-colors duration-300">ZILLION</h1>
         
@@ -109,14 +102,7 @@ export function WizardStep_Join({ onJoin, onBack, message, setMessage, joinBudge
       <AmbientBackground theme={theme} />
       <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
 
-      <div className={`
-        w-full max-w-md p-8 sm:p-10 rounded-3xl transition-all duration-500
-        ${theme === 'dark'
-          ? 'bg-slate-900/40 border border-white/10 shadow-[0_0_40px_-10px_rgba(16,185,129,0.15)] backdrop-blur-xl'
-          : 'bg-white/70 border border-white/60 shadow-2xl shadow-slate-200/50 backdrop-blur-md'
-        }
-        text-center animate-in fade-in duration-700
-      `}>
+      <div className="wizard-card text-center">
         <h2 className={`text-2xl font-medium mb-1 transition-colors duration-300 ${theme === 'dark' ? 'text-slate-300' : 'text-slate-800'}`}>WELCOME TO</h2>
         <h1 className="text-5xl font-bold tracking-tight text-zillion-400 mb-8 transition-colors duration-300">ZILLION</h1>
         

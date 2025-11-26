@@ -179,14 +179,7 @@ export function WizardStep2_Income({ income, totalIncome, onIncomeChange, onSave
       <AmbientBackground theme={theme} />
       <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
 
-      <div className={`
-        w-full max-w-2xl p-8 sm:p-10 rounded-3xl transition-all duration-500
-        ${theme === 'dark'
-          ? 'bg-slate-900/40 border border-white/10 shadow-[0_0_40px_-10px_rgba(16,185,129,0.15)] backdrop-blur-xl'
-          : 'bg-white/70 border border-white/60 shadow-2xl shadow-slate-200/50 backdrop-blur-md'
-        }
-        animate-in fade-in duration-700
-      `}>
+      <div className="wizard-card max-w-2xl">
         
         {mode !== 'landing' && mode !== 'simple' && stage !== 'interstitial' && (
           <div className="mb-6 flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-4">
@@ -379,14 +372,7 @@ export function WizardStep3_Savings({ savingsGoal, totalIncome, onSavingsChange,
       <AmbientBackground theme={theme} />
       <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
 
-      <div className={`
-        w-full max-w-md p-8 sm:p-10 rounded-3xl transition-all duration-500
-        ${theme === 'dark'
-          ? 'bg-slate-900/40 border border-white/10 shadow-[0_0_40px_-10px_rgba(16,185,129,0.15)] backdrop-blur-xl'
-          : 'bg-white/70 border border-white/60 shadow-2xl shadow-slate-200/50 backdrop-blur-md'
-        }
-        animate-in fade-in duration-700
-      `}>
+      <div className="wizard-card">
         <div className="text-center mb-8">
            <h2 className="text-sm font-bold tracking-[0.2em] text-zillion-400 uppercase mb-2">ZILLION</h2>
            <h1 className={`text-2xl font-bold transition-colors duration-300 ${theme === 'dark' ? 'text-slate-100' : 'text-slate-800'}`}>Set Your Monthly Savings Goal</h1>
@@ -461,14 +447,7 @@ export function WizardStep6_DebtSetup({ debts, onDebtsChange, onBack, onNext, th
       <AmbientBackground theme={theme} />
       <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
 
-      <div className={`
-        w-full max-w-2xl p-8 sm:p-10 rounded-3xl transition-all duration-500
-        ${theme === 'dark'
-          ? 'bg-slate-900/40 border border-white/10 shadow-[0_0_40px_-10px_rgba(16,185,129,0.15)] backdrop-blur-xl'
-          : 'bg-white/70 border border-white/60 shadow-2xl shadow-slate-200/50 backdrop-blur-md'
-        }
-        animate-in fade-in duration-700
-      `}>
+      <div className="wizard-card max-w-2xl">
         <div className="text-center mb-6">
            <h2 className="text-sm font-bold tracking-[0.2em] text-zillion-400 uppercase mb-2">ZILLION</h2>
            <h1 className={`text-2xl font-bold transition-colors duration-300 ${theme === 'dark' ? 'text-slate-100' : 'text-slate-800'}`}>Set Up Debt Tracking</h1>

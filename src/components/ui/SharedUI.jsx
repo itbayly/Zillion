@@ -10,22 +10,15 @@ export const AmbientBackground = ({ theme = 'light' }) => (
 );
 
 // --- Modal Wrapper ---
-export const ModalWrapper = ({ children, onClose, theme = 'light', title, maxWidth = 'max-w-lg', zIndex = 'z-50' }) => (
+export const ModalWrapper = ({ children, onClose, title, maxWidth = 'max-w-lg', zIndex = 'z-50' }) => (
   <div className={`fixed inset-0 ${zIndex} flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300`} onClick={onClose}>
     <div 
-      className={`w-full ${maxWidth} p-6 rounded-3xl shadow-2xl relative flex flex-col max-h-[90vh] transition-all duration-300
-      ${theme === 'dark' 
-        ? 'bg-slate-900/95 border border-white/10 text-slate-100' 
-        : 'bg-white/95 border border-white/60 text-slate-800'
-      } backdrop-blur-xl`}
+      className={`modal-panel ${maxWidth}`}
       onClick={(e) => e.stopPropagation()}
     >
       <div className="flex items-center justify-between mb-6 flex-shrink-0">
-        <h3 className="text-xl font-bold">{title}</h3>
-        <button 
-          onClick={onClose} 
-          className={`p-1 rounded-full transition-colors ${theme === 'dark' ? 'text-slate-400 hover:bg-slate-800 hover:text-white' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'}`}
-        >
+        <h3 className="text-heading-2">{title}</h3>
+        <button onClick={onClose} className="btn-icon">
           <X className="h-5 w-5" />
         </button>
       </div>

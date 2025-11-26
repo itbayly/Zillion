@@ -120,14 +120,7 @@ export function WizardStep4_Categories({ categories, onCategoriesChange, onNext,
       `}>
         <AmbientBackground theme={theme} />
         <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
-        <div className={`
-          w-full max-w-2xl p-8 sm:p-10 rounded-3xl transition-all duration-500
-          ${theme === 'dark'
-            ? 'bg-slate-900/40 border border-white/10 shadow-[0_0_40px_-10px_rgba(16,185,129,0.15)] backdrop-blur-xl'
-            : 'bg-white/70 border border-white/60 shadow-2xl shadow-slate-200/50 backdrop-blur-md'
-          }
-          animate-in fade-in duration-700 flex flex-col h-[80vh]
-        `}>
+        <div className="wizard-card max-w-2xl flex flex-col h-[80vh]">
           {content}
         </div>
       </div>
@@ -174,14 +167,7 @@ export function WizardStep_LinkDebts({ categories, debts, onCategoriesChange, on
       <AmbientBackground theme={theme} />
       <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
 
-      <div className={`
-        w-full max-w-2xl p-8 sm:p-10 rounded-3xl transition-all duration-500
-        ${theme === 'dark'
-          ? 'bg-slate-900/40 border border-white/10 shadow-[0_0_40px_-10px_rgba(16,185,129,0.15)] backdrop-blur-xl'
-          : 'bg-white/70 border border-white/60 shadow-2xl shadow-slate-200/50 backdrop-blur-md'
-        }
-        animate-in fade-in duration-700 flex flex-col h-[80vh]
-      `}>
+      <div className="wizard-card max-w-2xl flex flex-col h-[80vh]">
         <div className="text-center mb-8 flex-shrink-0">
           <h2 className="text-sm font-bold tracking-[0.2em] text-zillion-400 uppercase mb-2 transition-colors duration-300">ZILLION</h2>
           <h1 className={`text-2xl font-bold transition-colors duration-300 ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>Link Debts to Budget</h1>
@@ -321,14 +307,7 @@ export function WizardStep5_AssignBudgets({ categories, remainingToBudget, onCat
       <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
       <AssignRemainingModal isOpen={isAssignRemainingOpen} onClose={() => setIsAssignRemainingOpen(false)} remainingAmount={remainingRounded} bankAccounts={bankAccounts} onAssign={handleAssignRemaining} debts={debts} categories={categories} />
 
-      <div className={`
-        w-full max-w-2xl p-8 sm:p-10 rounded-3xl transition-all duration-500
-        ${theme === 'dark'
-          ? 'bg-slate-900/40 border border-white/10 shadow-[0_0_40px_-10px_rgba(16,185,129,0.15)] backdrop-blur-xl'
-          : 'bg-white/70 border border-white/60 shadow-2xl shadow-slate-200/50 backdrop-blur-md'
-        }
-        animate-in fade-in duration-700 flex flex-col h-[80vh]
-      `}>
+      <div className="wizard-card max-w-2xl flex flex-col h-[80vh]">
         <div className="text-center mb-4 flex-shrink-0">
           <h2 className="text-sm font-bold tracking-[0.2em] text-zillion-400 uppercase mb-1 transition-colors duration-300">ZILLION</h2>
           <h1 className={`text-xl font-bold transition-colors duration-300 ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>Assign Your Budget</h1>
@@ -399,14 +378,7 @@ export function WizardStep7_Complete({ onGoToDashboard, onStartOver, theme, togg
       <AmbientBackground theme={theme} />
       <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
 
-      <div className={`
-        w-full max-w-md p-8 sm:p-10 rounded-3xl transition-all duration-500
-        ${theme === 'dark'
-          ? 'bg-slate-900/40 border border-white/10 shadow-[0_0_40px_-10px_rgba(16,185,129,0.15)] backdrop-blur-xl'
-          : 'bg-white/70 border border-white/60 shadow-2xl shadow-slate-200/50 backdrop-blur-md'
-        }
-        text-center animate-in fade-in duration-700
-      `}>
+      <div className="wizard-card text-center">
         <div className="mx-auto h-20 w-20 bg-zillion-100 dark:bg-zillion-900/30 rounded-full flex items-center justify-center mb-6">
            <Check className="h-10 w-10 text-zillion-500" />
         </div>

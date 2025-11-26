@@ -15,21 +15,7 @@ export const InputField = ({ label, labelClassName, icon, rightIcon, className, 
           {label}
         </label>
       )}
-      <div className={`
-        relative flex items-center transition-all duration-300 rounded-lg overflow-hidden
-        border 
-        ${error 
-          ? 'border-red-500 bg-red-50/10' 
-          : isFocused 
-            ? 'border-zillion-400 ring-2 ring-zillion-400/20 bg-white/10 dark:bg-slate-900/40' 
-            : 'border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/20 hover:border-slate-400 dark:hover:border-slate-600'
-        }
-      `}>
-        {icon && (
-          <div className={`pl-3 pr-2 transition-colors duration-300 ${isFocused ? 'text-zillion-400' : 'text-slate-400'}`}>
-            {icon}
-          </div>
-        )}
+      <div className={`relative group/input`}>
         <input
           {...props}
           onFocus={(e) => {
@@ -41,13 +27,18 @@ export const InputField = ({ label, labelClassName, icon, rightIcon, className, 
             if (props.onBlur) props.onBlur(e);
           }}
           className={`
-            w-full py-3 text-sm bg-transparent outline-none transition-colors
-            text-slate-800 dark:text-slate-100 placeholder-slate-400
-            ${!icon && 'pl-4'}
-            ${!rightIcon && 'pr-4'}
+            input-standard
+            ${icon ? 'pl-10' : 'pl-4'}
+            ${rightIcon ? 'pr-10' : 'pr-4'}
+            ${error ? '!border-red-500 bg-red-50/10' : ''}
             ${className || ''}
           `}
         />
+        {icon && (
+          <div className={`absolute left-3 top-1/2 -translate-y-1/2 transition-colors duration-300 ${isFocused ? 'text-zillion-400' : 'text-slate-400'}`}>
+            {icon}
+          </div>
+        )}
         {rightIcon && (
           <div className={`pr-3 pl-2 transition-colors duration-300 ${isFocused ? 'text-zillion-400' : 'text-slate-400'}`}>
             {rightIcon}

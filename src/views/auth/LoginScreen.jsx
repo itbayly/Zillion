@@ -161,13 +161,7 @@ export default function LoginScreen({ joinBudgetId }) {
       <AmbientBackground theme={theme} />
       <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
 
-      <div className={`
-        w-full max-w-md p-8 sm:p-10 rounded-3xl transition-all duration-500
-        ${theme === 'dark'
-          ? 'bg-slate-900/40 border border-white/10 shadow-[0_0_40px_-10px_rgba(16,185,129,0.15)] backdrop-blur-xl'
-          : 'bg-white/70 border border-white/60 shadow-2xl shadow-slate-200/50 backdrop-blur-md'
-        }
-      `}>
+      <div className="wizard-card">
         <div className="text-center mb-8">
           {isLoginMode ? (
             <>

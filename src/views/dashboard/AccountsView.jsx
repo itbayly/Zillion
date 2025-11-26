@@ -48,16 +48,12 @@ export default function AccountsView({
     const isMainSavings = acc.id === mainSavingsAccountId;
 
     return (
-      <div key={acc.id} className={`relative flex flex-col sm:flex-row sm:items-center gap-4 p-5 rounded-2xl border transition-all duration-300 
-        ${theme === 'dark' 
-          ? 'bg-slate-900/40 border-white/5 hover:bg-slate-800/40' 
-          : 'bg-white/70 border-white/60 shadow-sm hover:bg-white/80'
-        }`}>
+      <div key={acc.id} className="glass-card relative flex flex-col sm:flex-row sm:items-center gap-4 p-5 hover:bg-white/80 dark:hover:bg-slate-800/40">
         
         {/* Name & Balance */}
         <div className="flex-grow min-w-0">
-          <h3 className={`font-bold text-lg truncate ${theme === 'dark' ? 'text-slate-200' : 'text-slate-800'}`}>{acc.name}</h3>
-          <p className={`font-mono text-sm ${theme === 'dark' ? 'text-zillion-400' : 'text-zillion-600'}`}>{formatCurrency(acc.balance)}</p>
+          <h3 className="font-bold text-lg truncate text-slate-800 dark:text-slate-200">{acc.name}</h3>
+          <p className="font-mono text-sm text-zillion-600 dark:text-zillion-400">{formatCurrency(acc.balance)}</p>
         </div>
 
         {/* Role Toggles */}

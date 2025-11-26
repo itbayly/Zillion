@@ -94,9 +94,9 @@ export default function ReportsDashboard({
   ];
 
   // Style Classes
-  const cardClass = `p-6 rounded-3xl border backdrop-blur-md transition-all duration-500 ${theme === 'dark' ? 'bg-slate-900/40 border-white/10 shadow-lg shadow-black/20' : 'bg-white/70 border-white/60 shadow-lg shadow-slate-200/50'}`;
-  const textMain = theme === 'dark' ? 'text-slate-200' : 'text-slate-800';
-  const textSub = theme === 'dark' ? 'text-slate-400' : 'text-slate-500';
+  const cardClass = "glass-card p-6";
+  const textMain = "text-slate-800 dark:text-slate-200";
+  const textSub = "text-slate-500 dark:text-slate-400";
 
   return (
     <div className="space-y-8">

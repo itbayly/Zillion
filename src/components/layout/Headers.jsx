@@ -98,9 +98,9 @@ export function HeroBar({ categories, transactions, income, savingsGoal, theme }
 
   const remaining = totalIncome - totalSpent - (savingsGoal || 0);
 
-  const cardClass = `p-5 rounded-2xl border backdrop-blur-md transition-all duration-300 ${theme === 'dark' ? 'bg-slate-900/40 border-white/5' : 'bg-white/70 border-white/60 shadow-sm'}`;
-  const labelClass = `text-xs font-bold uppercase tracking-wider ${theme === 'dark' ? 'text-slate-500' : 'text-slate-400'}`;
-  const valueClass = `text-2xl font-bold mt-1 ${theme === 'dark' ? 'text-slate-100' : 'text-slate-800'}`;
+  const cardClass = "glass-card p-5";
+  const labelClass = "text-label";
+  const valueClass = "text-heading-1 mt-1";
 
   return (
     <div className="w-full max-w-[924px] grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">

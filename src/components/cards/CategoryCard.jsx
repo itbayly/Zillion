@@ -33,15 +33,11 @@ export default function CategoryCard({
   const progressPercent = totalBudgeted > 0 ? (totalSpent / totalBudgeted) * 100 : 0;
 
   // Theme-aware colors
-  const cardBg = theme === 'dark' 
-    ? 'bg-slate-950/70 border border-white/10 shadow-xl shadow-black/20' 
-    : 'bg-white/70 border border-white/60 shadow-lg shadow-slate-200/50';
-  
-  const textColorMain = theme === 'dark' ? 'text-slate-200' : 'text-slate-700';
-  const textColorSub = theme === 'dark' ? 'text-slate-400' : 'text-slate-500';
-  const borderColor = theme === 'dark' ? 'border-slate-800' : 'border-slate-100';
+  const textColorMain = "text-slate-700 dark:text-slate-200";
+  const textColorSub = "text-slate-500 dark:text-slate-400";
+  const borderColor = "border-slate-100 dark:border-slate-800";
 
-  let statusColor = theme === 'dark' ? 'text-zillion-400' : 'text-zillion-600';
+  let statusColor = "text-zillion-600 dark:text-zillion-400";
   if (remaining < 0) {
     statusColor = 'text-red-500';
   } else if (progressPercent > 75) {
@@ -49,7 +45,7 @@ export default function CategoryCard({
   }
 
   return (
-    <div className={`w-full max-w-[924px] rounded-3xl backdrop-blur-md transition-all duration-500 ${cardBg}`}>
+    <div className="glass-card w-full max-w-[924px]">
       {/* --- Main Category Header --- */}
       <div className="cursor-pointer p-6" onClick={() => setIsExpanded(!isExpanded)}>
         <div className="flex items-center justify-between">

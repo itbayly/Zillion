@@ -16,14 +16,7 @@ const BankSetupStep = ({ title, description, nickname, setNickname, bankName, se
     <AmbientBackground theme={theme} />
     <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
 
-    <div className={`
-      w-full max-w-md p-8 sm:p-10 rounded-3xl transition-all duration-500
-      ${theme === 'dark'
-        ? 'bg-slate-900/40 border border-white/10 shadow-[0_0_40px_-10px_rgba(16,185,129,0.15)] backdrop-blur-xl'
-        : 'bg-white/70 border border-white/60 shadow-2xl shadow-slate-200/50 backdrop-blur-md'
-      }
-      animate-in fade-in slide-in-from-right-8 duration-500
-    `}>
+    <div className="wizard-card animate-in fade-in slide-in-from-right-8 duration-500">
       <div className="text-center mb-8">
         <h2 className="text-sm font-bold tracking-[0.2em] text-zillion-400 uppercase mb-2 transition-colors duration-300">ZILLION</h2>
         <h1 className={`text-2xl font-bold transition-colors duration-300 ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>{title}</h1>
@@ -96,14 +89,7 @@ export function WizardStep1a_AccountsInfo({ onNext, onBack, theme, toggleTheme }
       <AmbientBackground theme={theme} />
       <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
 
-      <div className={`
-        w-full max-w-md p-8 sm:p-10 rounded-3xl transition-all duration-500
-        ${theme === 'dark'
-          ? 'bg-slate-900/40 border border-white/10 shadow-[0_0_40px_-10px_rgba(16,185,129,0.15)] backdrop-blur-xl'
-          : 'bg-white/70 border border-white/60 shadow-2xl shadow-slate-200/50 backdrop-blur-md'
-        }
-        animate-in fade-in slide-in-from-right-8 duration-500
-      `}>
+      <div className="wizard-card animate-in fade-in slide-in-from-right-8 duration-500">
         <div className="text-center mb-8">
           <h2 className="text-sm font-bold tracking-[0.2em] text-zillion-400 uppercase mb-2 transition-colors duration-300">ZILLION</h2>
           <h1 className={`text-2xl font-bold transition-colors duration-300 ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>Let's Get Your Bank Accounts Set Up</h1>
@@ -263,14 +249,7 @@ export function WizardStep1e_AccountSummary({ budgetData, onAccountsChange, onSe
       <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
       <AddBankAccountModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onAddAccount={handleAddAccount} />
       
-      <div className={`
-        w-full max-w-2xl p-8 sm:p-10 rounded-3xl transition-all duration-500
-        ${theme === 'dark'
-          ? 'bg-slate-900/40 border border-white/10 shadow-[0_0_40px_-10px_rgba(16,185,129,0.15)] backdrop-blur-xl'
-          : 'bg-white/70 border border-white/60 shadow-2xl shadow-slate-200/50 backdrop-blur-md'
-        }
-        animate-in fade-in duration-700
-      `}>
+      <div className="wizard-card max-w-2xl">
         <div className="text-center mb-8">
            <h2 className="text-sm font-bold tracking-[0.2em] text-zillion-400 uppercase mb-2 transition-colors duration-300">ZILLION</h2>
            <h1 className={`text-2xl font-bold transition-colors duration-300 ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>Bank Accounts</h1>

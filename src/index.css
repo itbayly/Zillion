@@ -21,3 +21,86 @@ html {
 .dark .custom-scrollbar::-webkit-scrollbar-thumb {
   background-color: rgba(71, 85, 105, 0.5);
 }
+
+@layer components {
+  /* Unified Card Style */
+  .glass-card {
+    @apply rounded-3xl border backdrop-blur-md transition-all duration-500;
+    @apply bg-white/70 border-white/60 shadow-lg shadow-slate-200/50;
+    @apply dark:bg-slate-900/40 dark:border-white/10 dark:shadow-[0_0_40px_-10px_rgba(16,185,129,0.1)] dark:shadow-black/20;
+  }
+
+  /* Standard Headers */
+  .text-heading-1 {
+    @apply text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100;
+  }
+  
+  .text-heading-2 {
+    @apply text-xl font-bold text-slate-800 dark:text-slate-200;
+  }
+
+  .text-label {
+    @apply text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400;
+  }
+  
+  .text-sub {
+    @apply text-slate-600 dark:text-slate-400;
+  }
+
+  /* Standard Form Input */
+  .input-standard {
+    @apply w-full py-3 bg-slate-50 border border-slate-300 rounded-lg outline-none transition-all duration-300;
+    @apply text-sm text-slate-800 placeholder-slate-400;
+    @apply focus:border-zillion-400 focus:ring-2 focus:ring-zillion-400/20;
+    @apply dark:bg-slate-900/20 dark:border-slate-700 dark:text-slate-100 dark:placeholder-slate-500;
+    @apply dark:hover:border-slate-600 hover:border-slate-400;
+  }
+
+  /* Standard Modal/Overlay Panel */
+  .modal-panel {
+    @apply w-full p-6 rounded-3xl shadow-2xl relative flex flex-col max-h-[90vh] transition-all duration-300;
+    @apply bg-white/95 border border-white/60 text-slate-800 backdrop-blur-xl;
+    @apply dark:bg-slate-900/95 dark:border-white/10 dark:text-slate-100;
+  }
+
+  /* Standard Icon Button (Edit, Delete, Close) */
+  .btn-icon {
+    @apply p-2 rounded-full transition-colors duration-200;
+    @apply text-slate-400 hover:bg-slate-100 hover:text-slate-600;
+    @apply dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-200;
+  }
+
+  /* Centered Wizard/Auth Card */
+  .wizard-card {
+    @apply w-full max-w-md p-8 sm:p-10 rounded-3xl transition-all duration-500 relative;
+    @apply bg-white/70 border border-white/60 shadow-2xl shadow-slate-200/50 backdrop-blur-md;
+    @apply dark:bg-slate-900/40 dark:border-white/10 dark:shadow-[0_0_40px_-10px_rgba(16,185,129,0.15)] dark:backdrop-blur-xl;
+  }
+}
+
+@layer components {
+  .text-heading-1 {
+    @apply text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100;
+  }
+  
+  .text-heading-2 {
+    @apply text-xl font-bold text-slate-800 dark:text-slate-200;
+  }
+
+  .text-label {
+    @apply text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400;
+  }
+
+  /* Standard Glass Card used in Dashboards */
+  .glass-card {
+    @apply rounded-3xl border backdrop-blur-md transition-all duration-500;
+    @apply bg-white/70 border-white/60 shadow-lg shadow-slate-200/50;
+    @apply dark:bg-slate-900/40 dark:border-white/10 dark:shadow-[0_0_40px_-10px_rgba(16,185,129,0.1)] dark:shadow-black/20;
+  }
+
+  /* High-contrast or Active Elements */
+  .glass-panel-active {
+    @apply bg-zillion-50 border-zillion-400/50 text-zillion-700;
+    @apply dark:bg-zillion-900/20 dark:border-zillion-400/20 dark:text-zillion-300;
+  }
+}

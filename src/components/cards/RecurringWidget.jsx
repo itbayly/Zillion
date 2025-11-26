@@ -200,12 +200,7 @@ export default function RecurringTransactionsWidget({ recurringTransactions, onA
         theme={theme}
       />
       
-      <div className={`
-        h-full min-h-[317px] w-full rounded-3xl p-6 backdrop-blur-md transition-all duration-500 border flex flex-col
-        ${theme === 'dark' 
-          ? 'bg-slate-900/40 border-white/10 shadow-[0_0_30px_-10px_rgba(0,0,0,0.3)]' 
-          : 'bg-white/70 border-white/60 shadow-lg shadow-slate-200/50'}
-      `}>
+      <div className="glass-card h-full min-h-[317px] w-full p-6 flex flex-col">
         <div className="flex items-center justify-between mb-6 flex-shrink-0">
             <h3 className={`text-xl font-bold ${theme === 'dark' ? 'text-slate-200' : 'text-slate-700'}`}>Recurring Payments</h3>
             <button onClick={() => setModalMode('add')} className={`p-2 rounded-full transition-colors ${theme === 'dark' ? 'hover:bg-slate-700 text-slate-400' : 'hover:bg-slate-100 text-slate-500'}`}>

@@ -44,6 +44,7 @@ export const getDefaultBudgetData = () => {
     hasMigratedV2: true,
     linkedBudgetId: null,
     sharedWith: null,
+    excludedMerchants: [], // List of merchant names to hide from widgets
     monthlyData: {
       [currentMonthKey]: getNewMonthEntry(),
     },

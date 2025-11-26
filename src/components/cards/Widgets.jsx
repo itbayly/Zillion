@@ -87,13 +87,7 @@ export function TopMerchantsCard({ transactions, excludedMerchants = [], onUpdat
         theme={theme}
       />
 
-      <div className={`
-        h-[317px] w-full rounded-3xl p-6 backdrop-blur-md transition-all duration-500 border relative group/card
-        ${theme === 'dark' 
-          ? 'bg-slate-900/40 border-white/10 shadow-[0_0_30px_-10px_rgba(0,0,0,0.3)]' 
-          : 'bg-white/70 border-white/60 shadow-lg shadow-slate-200/50'}
-        ${className || 'mb-6'}
-      `}>
+      <div className={`glass-card h-[317px] w-full p-6 relative group/card ${className || 'mb-6'}`}>
         <div className="flex items-center justify-between mb-6">
            <h3 className={`text-xl font-bold ${theme === 'dark' ? 'text-slate-200' : 'text-slate-700'}`}>Top Merchants</h3>
            <button 
@@ -164,12 +158,7 @@ export function RecentActivityCard({ transactions, categories, theme = 'light' }
   };
 
   return (
-    <div className={`
-      mb-6 h-[317px] w-full rounded-3xl p-6 backdrop-blur-md transition-all duration-500 border
-      ${theme === 'dark' 
-        ? 'bg-slate-900/40 border-white/10 shadow-[0_0_30px_-10px_rgba(0,0,0,0.3)]' 
-        : 'bg-white/70 border-white/60 shadow-lg shadow-slate-200/50'}
-    `}>
+    <div className="glass-card mb-6 h-[317px] w-full p-6">
       <h3 className={`mb-6 text-xl font-bold ${theme === 'dark' ? 'text-slate-200' : 'text-slate-700'}`}>Recent Activity</h3>
       <div className="flex flex-col gap-4">
         {recentTransactions.length === 0 ? (
@@ -239,12 +228,7 @@ export function UpcomingBillsCard({ debts, theme = 'light' }) {
   };
 
   return (
-    <div className={`
-      h-[317px] w-full rounded-3xl p-6 backdrop-blur-md transition-all duration-500 border
-      ${theme === 'dark' 
-        ? 'bg-slate-900/40 border-white/10 shadow-[0_0_30px_-10px_rgba(0,0,0,0.3)]' 
-        : 'bg-white/70 border-white/60 shadow-lg shadow-slate-200/50'}
-    `}>
+    <div className="glass-card h-[317px] w-full p-6">
       <h3 className={`mb-6 text-xl font-bold ${theme === 'dark' ? 'text-slate-200' : 'text-slate-700'}`}>Upcoming Bills</h3>
       <div className="flex flex-col gap-4">
         {upcomingBills.length === 0 ? (

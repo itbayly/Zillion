@@ -286,18 +286,12 @@ export function GlassCurrencyInput({ value, onChange, placeholder = '0.00', id, 
   return (
     <div className="w-full mb-5">
       {label && (
-        <label className={`block mb-2 text-xs font-semibold uppercase tracking-wider transition-colors duration-300 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>
+        <label className="block mb-2 text-label transition-colors duration-300">
           {label}
         </label>
       )}
-      <div className={`
-        relative flex items-center transition-all duration-300 rounded-lg overflow-hidden border
-        ${isFocused 
-            ? 'border-zillion-400 ring-2 ring-zillion-400/20 bg-white/10 dark:bg-slate-900/40' 
-            : 'border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/20 hover:border-slate-400 dark:hover:border-slate-600'
-        }
-      `}>
-        <div className={`pl-3 pr-2 transition-colors duration-300 ${isFocused ? 'text-zillion-400' : 'text-slate-400'}`}>
+      <div className="relative">
+        <div className={`absolute left-3 top-1/2 -translate-y-1/2 transition-colors duration-300 ${isFocused ? 'text-zillion-400' : 'text-slate-400'}`}>
           <DollarSign className="h-4 w-4" />
         </div>
         <input
@@ -311,10 +305,7 @@ export function GlassCurrencyInput({ value, onChange, placeholder = '0.00', id, 
           disabled={disabled}
           autoFocus={autoFocus}
           placeholder={placeholder}
-          className={`
-            w-full py-3 text-sm bg-transparent outline-none transition-colors
-            ${theme === 'dark' ? 'text-slate-100 placeholder-slate-500' : 'text-slate-800 placeholder-slate-400'}
-          `}
+          className="input-standard pl-10"
         />
       </div>
     </div>

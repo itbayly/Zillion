@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Check, DollarSign, ArrowRight, AlertTriangle, PiggyBank, Landmark } from 'lucide-react';
 import { formatCurrency, getTodayDate } from '../../utils/helpers';
 import { WizardCurrencyInput } from '../ui/FormInputs';
+import { ModalWrapper } from '../ui/SharedUI';
 
 export default function PaydayModal({
   isOpen,
@@ -61,10 +62,7 @@ export default function PaydayModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black bg-opacity-50" onClick={onClose}>
-      <div className="relative w-full max-w-md rounded-lg bg-white p-6 shadow-xl" onClick={e => e.stopPropagation()}>
-        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><X className="h-6 w-6" /></button>
-
+    <ModalWrapper onClose={onClose} title={`It's ${payeeName}'s Payday!`} maxWidth="max-w-md" zIndex="z-[60]">
         {/* --- HEADER --- */}
         <div className="text-center mb-6">
           <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-green-100 text-green-600">
@@ -178,7 +176,6 @@ export default function PaydayModal({
             </button>
           </div>
         )}
-      </div>
-    </div>
+      </ModalWrapper>
   );
 }

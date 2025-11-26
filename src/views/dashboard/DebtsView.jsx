@@ -64,14 +64,11 @@ export default function DebtsView({ debts, onDebtsChange, onOpenDebtDetails, onO
             const totalPaidOnPrincipal = startingAmount - debt.amountOwed;
             
             // Glassmorphic Card Style
-            const cardClass = theme === 'dark' 
-              ? 'bg-slate-900/40 border-white/10 shadow-lg shadow-black/20' 
-              : 'bg-white/70 border-white/60 shadow-lg shadow-slate-200/50';
-            const borderClass = theme === 'dark' ? 'border-slate-800' : 'border-slate-100';
-            const textClass = theme === 'dark' ? 'text-slate-200' : 'text-slate-900';
+            const borderClass = "border-slate-100 dark:border-slate-800";
+            const textClass = "text-slate-900 dark:text-slate-200";
 
             return (
-              <div key={debt.id} className={`rounded-3xl border backdrop-blur-md transition-all duration-500 flex flex-col overflow-hidden ${cardClass}`}>
+              <div key={debt.id} className="glass-card flex flex-col overflow-hidden">
                 <div className={`flex items-center justify-between border-b p-5 ${borderClass}`}>
                   <h3 className={`text-lg font-bold ${textClass}`}>{debt.name}</h3>
                 </div>
