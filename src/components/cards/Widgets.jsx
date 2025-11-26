@@ -47,7 +47,7 @@ function ManageExclusionsModal({ isOpen, onClose, excludedMerchants, onUpdateExc
 }
 
 // --- Top Merchants ---
-export function TopMerchantsCard({ transactions, excludedMerchants = [], onUpdateExclusions, theme = 'light' }) {
+export function TopMerchantsCard({ transactions, excludedMerchants = [], onUpdateExclusions, theme = 'light', className = '' }) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const topMerchants = useMemo(() => {
@@ -88,10 +88,11 @@ export function TopMerchantsCard({ transactions, excludedMerchants = [], onUpdat
       />
 
       <div className={`
-        mb-6 h-[317px] w-full rounded-3xl p-6 backdrop-blur-md transition-all duration-500 border relative group/card
+        h-[317px] w-full rounded-3xl p-6 backdrop-blur-md transition-all duration-500 border relative group/card
         ${theme === 'dark' 
           ? 'bg-slate-900/40 border-white/10 shadow-[0_0_30px_-10px_rgba(0,0,0,0.3)]' 
           : 'bg-white/70 border-white/60 shadow-lg shadow-slate-200/50'}
+        ${className || 'mb-6'}
       `}>
         <div className="flex items-center justify-between mb-6">
            <h3 className={`text-xl font-bold ${theme === 'dark' ? 'text-slate-200' : 'text-slate-700'}`}>Top Merchants</h3>

@@ -325,14 +325,19 @@ export default function TransactionsView({
   const checkboxClass = `w-4 h-4 rounded border cursor-pointer ${theme === 'dark' ? 'border-slate-500 bg-slate-700 accent-zillion-400' : 'border-slate-300 accent-zillion-500'}`;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-56px)] relative">
+    <div className="flex flex-col h-[calc(100vh-48px)]">
       <EditTransactionModal isOpen={!!editingTransaction} onClose={() => setEditingTransaction(null)} transaction={editingTransaction} categories={categories} bankAccounts={bankAccounts} onSave={onSaveTransaction} onDelete={onDeleteTransaction} onReturn={onReturnTransaction} theme={theme} />
       <ExportChoiceModal isOpen={isExportModalOpen} onClose={() => setIsExportModalOpen(false)} onExportFiltered={() => handleExport(true)} onExportAll={() => handleExport(false)} filterCount={filteredTransactions.length} totalCount={allTransactions.length} theme={theme} />
-      <CustomDateRangeModal isOpen={dateFilter.modalOpen} onClose={() => setDateFilter({...dateFilter, modalOpen: false})} theme={theme} onApply={(start, end) => setDateFilter({ type: 'range', range: { start, end }, selection: new Set(), modalOpen: false })} />
+      <CustomDateRangeModal 
+         isOpen={dateFilter.modalOpen} 
+         onClose={() => setDateFilter({...dateFilter, modalOpen: false})} 
+         theme={theme} 
+         onApply={(start, end) => setDateFilter({ type: 'range', range: { start, end }, selection: new Set(), modalOpen: false })}
+      />
       <BulkEditCategoryModal isOpen={isBulkEditModalOpen} onClose={() => setIsBulkEditModalOpen(false)} onSave={(catId) => { onBulkCategoryUpdate(Array.from(selectedIds), catId); setSelectedIds(new Set()); }} categories={categories} count={selectedIds.size} theme={theme} />
 
       {/* TOP HEADER */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 flex-shrink-0 px-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-8 mb-6 flex-shrink-0 px-5">
         <h2 className={`text-2xl font-semibold ${headerText}`}>Transactions</h2>
         <div className="flex gap-3">
            <div className={`relative flex items-center px-3 py-2 rounded-xl border ${inputBg} w-full sm:w-64 h-[42px]`}>

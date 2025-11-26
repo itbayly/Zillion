@@ -757,9 +757,9 @@ function BudgetApp({ userId, onSignOut, joinBudgetId }) {
       <div className="mx-auto w-full">
         <main>
           {isSetupComplete ? (
-            <div className="grid min-h-screen w-full grid-cols-[280px_1fr_450px] gap-8 p-6">
-              <div><Sidebar activeTab={activeTab} onTabClick={setActiveTab} theme={theme} /></div>
-              <div className={`flex flex-col ${activeTab === 'transactions' ? 'pt-0' : 'pt-2'}`}>
+            <div className="grid min-h-screen w-full grid-cols-1 lg:grid-cols-[280px_1fr] xl:grid-cols-[280px_1fr_400px] gap-6 p-4 lg:p-6">
+              <div className="hidden lg:block"><Sidebar activeTab={activeTab} onTabClick={setActiveTab} theme={theme} /></div>
+              <div className={`flex flex-col ${activeTab === 'transactions' ? 'pt-0' : 'pt-2'} min-w-0`}>
                 {activeTab !== 'transactions' && (
                   <HeaderBar userName={budgetData.userName} viewDate={viewDate} monthlyDataKeys={monthlyDataKeys} setViewDate={setViewDate} onSimulateRollover={handleSimulateRollover} onOpenTransactionModal={() => setIsTransactionModalOpen(true)} theme={theme} />
                 )}
@@ -791,30 +791,36 @@ function BudgetApp({ userId, onSignOut, joinBudgetId }) {
                 </div>
               </div>
 
-              <aside className="sticky top-6 h-[calc(100vh-48px)] overflow-y-auto no-scrollbar pt-2">
+              <aside className="hidden xl:block sticky top-6 h-[calc(100vh-48px)] overflow-y-auto no-scrollbar pt-2">
                 <div className="flex flex-col gap-6 h-full">
                   {activeTab === 'transactions' ? (
-                    <div className="flex flex-col gap-6 h-full">
-                      <div className="flex-1 min-h-0">
-                        <RecurringTransactionsWidget 
-                          recurringTransactions={budgetData.recurringTransactions} 
-                          onAdd={handleAddRecurring} 
-                          onUpdate={handleUpdateRecurring}
-                          onDelete={handleDeleteRecurring}
-                          categories={currentMonthData.categories}
-                          transactions={currentMonthData.transactions}
-                          onSaveTransaction={handleSaveTransaction}
-                          bankAccounts={budgetData.bankAccounts}
-                          defaultAccountId={budgetData.defaultAccountId}
-                          theme={theme}
+                    <div className="flex flex-col h-full">
+                      {/* Spacer to align with Transaction List Card (32px mt + 42px header + 24px mb = 98px) */}
+                      <div className="h-[98px] w-full flex-shrink-0" />
+                      
+                      <div className="flex-1 min-h-0 flex flex-col gap-6">
+                        <div className="flex-1 min-h-0">
+                          <RecurringTransactionsWidget 
+                            recurringTransactions={budgetData.recurringTransactions} 
+                            onAdd={handleAddRecurring} 
+                            onUpdate={handleUpdateRecurring}
+                            onDelete={handleDeleteRecurring}
+                            categories={currentMonthData.categories}
+                            transactions={currentMonthData.transactions}
+                            onSaveTransaction={handleSaveTransaction}
+                            bankAccounts={budgetData.bankAccounts}
+                            defaultAccountId={budgetData.defaultAccountId}
+                            theme={theme}
+                          />
+                        </div>
+                        <TopMerchantsCard 
+                            transactions={currentMonthData.transactions} 
+                            excludedMerchants={budgetData.excludedMerchants || []}
+                            onUpdateExclusions={handleUpdateExcludedMerchants}
+                            theme={theme}
+                            className="mb-0"
                         />
                       </div>
-                      <TopMerchantsCard 
-                          transactions={currentMonthData.transactions} 
-                          excludedMerchants={budgetData.excludedMerchants || []}
-                          onUpdateExclusions={handleUpdateExcludedMerchants}
-                          theme={theme} 
-                      />
                     </div>
                   ) : (
                     <>

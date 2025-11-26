@@ -57,8 +57,8 @@ export default function Sidebar({ activeTab, onTabClick, theme }) {
 
   return (
     <aside className={`
-      sticky top-6 z-30 flex h-[calc(100vh-48px)] w-full flex-col items-center rounded-3xl 
-      border shadow-xl backdrop-blur-xl transition-all duration-500
+      sticky top-6 z-30 flex h-[calc(100vh-48px)] min-h-[600px] w-full flex-col items-center rounded-3xl 
+      border shadow-xl backdrop-blur-xl transition-all duration-500 overflow-y-auto custom-scrollbar
       ${theme === 'dark' 
         ? 'bg-slate-900/40 border-white/10 shadow-[0_0_40px_-10px_rgba(16,185,129,0.1)]' 
         : 'bg-white/70 border-white/60 shadow-slate-200/50'
