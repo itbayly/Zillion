@@ -34,7 +34,12 @@ export default function EditTransactionModal({
   // --- Populate form ---
   useEffect(() => {
     if (transaction && isOpen) {
-      setAmount(transaction.amount?.toString() || '');
+      // Force 2 decimal places on init
+      const formattedAmount = transaction.amount !== undefined && transaction.amount !== null 
+        ? Number(transaction.amount).toFixed(2) 
+        : '';
+      setAmount(formattedAmount);
+
       setDate(transaction.date || getTodayDate());
       setAccountId(transaction.accountId || '');
       setMerchant(transaction.merchant || '');

@@ -45,7 +45,7 @@ import TransactionsView from './views/dashboard/TransactionsView';
 // --- 4. Layout & Widgets ---
 import Sidebar from './components/layout/Sidebar';
 import { HeaderBar, HeroBar } from './components/layout/Headers';
-import { RecentActivityCard, UpcomingBillsCard } from './components/cards/Widgets';
+import { RecentActivityCard, UpcomingBillsCard, TopMerchantsCard } from './components/cards/Widgets';
 import RecurringTransactionsWidget from './components/cards/RecurringWidget';
 
 // --- 5. Modals ---
@@ -327,6 +327,9 @@ function BudgetApp({ userId, onSignOut, joinBudgetId }) {
   const handleSavingsAccountChange = (accountId) => updateBudget({ savingsAccountId: accountId || null });
   const handleMainSavingsAccountChange = (accountId) => updateBudget({ mainSavingsAccountId: accountId || null });
   const handleDebtsChange = (newDebts) => updateBudget({ debts: newDebts });
+  
+  // Add this new handler
+  const handleUpdateExcludedMerchants = (list) => updateBudget({ excludedMerchants: list });
 
   const getWriteKey = () => {
     const isSetup = budgetData.currentStep > 13;
@@ -555,6 +558,48 @@ function BudgetApp({ userId, onSignOut, joinBudgetId }) {
     updateBudget({ monthlyData: newMonthlyData, bankAccounts: newBankAccounts });
   };
 
+  // --- BULK ACTIONS ---
+  const handleBulkDeleteTransactions = (ids) => {
+    const newMonthlyData = { ...budgetData.monthlyData };
+    const month = newMonthlyData[viewDate];
+    if (!month) return;
+
+    let newBankAccounts = [...budgetData.bankAccounts];
+    const txsToDelete = month.transactions.filter(t => ids.includes(t.id));
+
+    txsToDelete.forEach(tx => {
+       if (!tx.isSplit) {
+           const amount = parseFloat(tx.amount) || 0;
+           newBankAccounts = newBankAccounts.map(acc => {
+               if (acc.id === tx.accountId) {
+                   return { ...acc, balance: acc.balance + (tx.isIncome ? -amount : amount) };
+               }
+               return acc;
+           });
+       }
+    });
+
+    const newTransactions = month.transactions.filter(t => !ids.includes(t.id));
+    newMonthlyData[viewDate] = { ...month, transactions: newTransactions };
+    updateBudget({ monthlyData: newMonthlyData, bankAccounts: newBankAccounts });
+  };
+
+  const handleBulkCategoryUpdate = (ids, newSubCategoryId) => {
+    const newMonthlyData = { ...budgetData.monthlyData };
+    const month = newMonthlyData[viewDate];
+    if (!month) return;
+
+    const newTransactions = month.transactions.map(tx => {
+       if (ids.includes(tx.id) && !tx.isIncome) {
+          return { ...tx, subCategoryId: newSubCategoryId };
+       }
+       return tx;
+    });
+
+    newMonthlyData[viewDate] = { ...month, transactions: newTransactions };
+    updateBudget({ monthlyData: newMonthlyData });
+  };
+
   const handleReturnTransaction = (originalTx, returnAmount) => {
     // Create a new income transaction to represent the return
     const returnTx = {
@@ -714,11 +759,10 @@ function BudgetApp({ userId, onSignOut, joinBudgetId }) {
           {isSetupComplete ? (
             <div className="grid min-h-screen w-full grid-cols-[280px_1fr_450px] gap-8 p-6">
               <div><Sidebar activeTab={activeTab} onTabClick={setActiveTab} theme={theme} /></div>
-              <div className="flex flex-col pt-2">
+              <div className={`flex flex-col ${activeTab === 'transactions' ? 'pt-0' : 'pt-2'}`}>
                 {activeTab !== 'transactions' && (
                   <HeaderBar userName={budgetData.userName} viewDate={viewDate} monthlyDataKeys={monthlyDataKeys} setViewDate={setViewDate} onSimulateRollover={handleSimulateRollover} onOpenTransactionModal={() => setIsTransactionModalOpen(true)} theme={theme} />
                 )}
-                
                 {activeTab === 'budget' && <HeroBar categories={currentMonthData.categories} transactions={currentMonthData.transactions} income={currentMonthData.income} savingsGoal={currentMonthData.savingsGoal} theme={theme} />}
 
                 <div className={`${activeTab === 'transactions' ? 'mt-0' : 'mt-8'} w-full`}>
@@ -741,7 +785,7 @@ function BudgetApp({ userId, onSignOut, joinBudgetId }) {
                   {activeTab === 'accounts' && <AccountsView accounts={budgetData.bankAccounts} defaultAccountId={budgetData.defaultAccountId} onAccountsChange={handleBankAccountsChange} onSetDefaultAccount={handleSetDefaultAccount} savingsAccountId={budgetData.savingsAccountId} onSavingsAccountChange={handleSavingsAccountChange} mainSavingsAccountId={budgetData.mainSavingsAccountId} onMainSavingsAccountChange={handleMainSavingsAccountChange} onOpenAccountTransactions={(filter) => { setAccountModalFilter(filter); setIsAccountModalOpen(true); }} onOpenTransferModal={() => setIsTransferModalOpen(true)} theme={theme} />}
                   {activeTab === 'settings' && <SettingsView onSignOut={onSignOut} budgetId={userId} updateBudget={updateBudget} userDoc={userDoc} effectiveBudgetId={effectiveBudgetId} onOpenJoinModal={() => setIsJoinModalOpen(true)} onOpenLeaveModal={() => setIsLeaveModalOpen(true)} onOpenRemoveModal={() => setIsRemoveModalOpen(true)} sharingMessage={sharingMessage} setSharingMessage={setSharingMessage} setActiveTab={setActiveTab} theme={theme} />}
                   
-                  {activeTab === 'transactions' && <TransactionsView transactions={currentMonthData.transactions} categories={currentMonthData.categories} bankAccounts={budgetData.bankAccounts} onSaveTransaction={handleUpdateTransaction} onDeleteTransaction={handleDeleteTransaction} onReturnTransaction={handleReturnTransaction} onOpenTransactionModal={() => setIsTransactionModalOpen(true)} theme={theme} />}
+                  {activeTab === 'transactions' && <TransactionsView transactions={currentMonthData.transactions} categories={currentMonthData.categories} bankAccounts={budgetData.bankAccounts} onSaveTransaction={handleUpdateTransaction} onDeleteTransaction={handleDeleteTransaction} onReturnTransaction={handleReturnTransaction} onOpenTransactionModal={() => setIsTransactionModalOpen(true)} onBulkDelete={handleBulkDeleteTransactions} onBulkCategoryUpdate={handleBulkCategoryUpdate} theme={theme} />}
 
                   {['savings', 'account'].includes(activeTab) && <div className={`flex h-64 items-center justify-center rounded-3xl border-2 border-dashed transition-colors duration-300 ${theme === 'dark' ? 'border-slate-800 text-slate-500' : 'border-slate-300 text-slate-400'}`}><p className="text-lg">This view is coming soon.</p></div>}
                 </div>
@@ -750,17 +794,26 @@ function BudgetApp({ userId, onSignOut, joinBudgetId }) {
               <aside className="sticky top-6 h-[calc(100vh-48px)] overflow-y-auto no-scrollbar pt-2">
                 <div className="flex flex-col gap-6 h-full">
                   {activeTab === 'transactions' ? (
-                    <div className="h-full">
-                      <RecurringTransactionsWidget 
-                        onAdd={handleAddRecurring} 
-                        onUpdate={handleUpdateRecurring}
-                        onDelete={handleDeleteRecurring}
-                        categories={currentMonthData.categories}
-                        transactions={currentMonthData.transactions}
-                        onSaveTransaction={handleSaveTransaction}
-                        bankAccounts={budgetData.bankAccounts}
-                        defaultAccountId={budgetData.defaultAccountId}
-                        theme={theme}
+                    <div className="flex flex-col gap-6 h-full">
+                      <div className="flex-1 min-h-0">
+                        <RecurringTransactionsWidget 
+                          recurringTransactions={budgetData.recurringTransactions} 
+                          onAdd={handleAddRecurring} 
+                          onUpdate={handleUpdateRecurring}
+                          onDelete={handleDeleteRecurring}
+                          categories={currentMonthData.categories}
+                          transactions={currentMonthData.transactions}
+                          onSaveTransaction={handleSaveTransaction}
+                          bankAccounts={budgetData.bankAccounts}
+                          defaultAccountId={budgetData.defaultAccountId}
+                          theme={theme}
+                        />
+                      </div>
+                      <TopMerchantsCard 
+                          transactions={currentMonthData.transactions} 
+                          excludedMerchants={budgetData.excludedMerchants || []}
+                          onUpdateExclusions={handleUpdateExcludedMerchants}
+                          theme={theme} 
                       />
                     </div>
                   ) : (
@@ -779,7 +832,7 @@ function BudgetApp({ userId, onSignOut, joinBudgetId }) {
               {budgetData.currentStep === 2 && <WizardStep1a_AccountsInfo onBack={() => handleStepChange(0)} onNext={() => handleStepChange(3)} theme={theme} toggleTheme={toggleTheme} />}
               {budgetData.currentStep === 3 && <WizardStep1b_MainSavingsAccount budgetData={budgetData} onAccountsChange={handleBankAccountsChange} onMainSavingsAccountChange={handleMainSavingsAccountChange} onBack={() => handleStepChange(2)} onNext={() => handleStepChange(4)} theme={theme} toggleTheme={toggleTheme} />}
               {budgetData.currentStep === 4 && <WizardStep1c_DefaultAccount budgetData={budgetData} onAccountsChange={handleBankAccountsChange} onSetDefaultAccount={handleSetDefaultAccount} onBack={() => handleStepChange(3)} onNext={() => handleStepChange(5)} theme={theme} toggleTheme={toggleTheme} />}
-              {budgetData.currentStep === 5 && <WizardStep1d_SinkingFundAccount budgetData={budgetData} onAccountsChange={handleBankAccountsChange} onSavingsAccountChange={handleSavingsChange} onBack={() => handleStepChange(4)} onNext={() => handleStepChange(6)} theme={theme} toggleTheme={toggleTheme} />}
+              {budgetData.currentStep === 5 && <WizardStep1d_SinkingFundAccount budgetData={budgetData} onAccountsChange={handleBankAccountsChange} onSavingsAccountChange={handleSavingsAccountChange} onBack={() => handleStepChange(4)} onNext={() => handleStepChange(6)} theme={theme} toggleTheme={toggleTheme} />}
               {budgetData.currentStep === 6 && <WizardStep1e_AccountSummary budgetData={budgetData} onAccountsChange={handleBankAccountsChange} onSetDefaultAccount={handleSetDefaultAccount} onMainSavingsAccountChange={handleMainSavingsAccountChange} onSavingsAccountChange={handleSavingsAccountChange} onBack={() => handleStepChange(5)} onNext={() => handleStepChange(7)} theme={theme} toggleTheme={toggleTheme} />}
 
               {/* STEP 7: Combined Income + Deductions */}
