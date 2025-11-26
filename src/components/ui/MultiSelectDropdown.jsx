@@ -58,6 +58,8 @@ export default function MultiSelectDropdown({
     ? 'bg-slate-800 border-slate-700 text-white placeholder-slate-500'
     : 'bg-white border-gray-200 text-gray-900 placeholder-gray-400';
 
+  const optionHoverClass = theme === 'dark' ? 'hover:bg-slate-700' : 'hover:bg-zillion-50';
+
   return (
     <div className="relative" ref={dropdownRef}>
       <button
@@ -87,7 +89,7 @@ export default function MultiSelectDropdown({
               <div
                 key={option.id}
                 onClick={() => handleToggle(option.id)}
-                className={`relative cursor-pointer select-none py-2 pl-10 pr-4 transition-colors duration-200 ${theme === 'dark' ? 'hover:bg-slate-700' : 'hover:bg-zillion-50'}`}
+                className={`relative cursor-pointer select-none py-2 pl-10 pr-4 transition-colors duration-200 ${optionHoverClass}`}
               >
                 <span
                   className={`block truncate transition-colors duration-300 ${
