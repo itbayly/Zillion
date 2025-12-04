@@ -145,6 +145,8 @@ export function TransactionDetailModal({ isOpen, onClose, filter, allTransaction
        relevantTransactions = allTransactions.filter(tx => !tx.isIncome && subIds.includes(tx.subCategoryId));
     } else if (filter.type === 'subcategory') {
        relevantTransactions = allTransactions.filter(tx => !tx.isIncome && tx.subCategoryId === filter.id);
+    } else if (filter.type === 'date') {
+       relevantTransactions = allTransactions.filter(tx => tx.date === filter.date);
     } else {
        relevantTransactions = allTransactions;
     }

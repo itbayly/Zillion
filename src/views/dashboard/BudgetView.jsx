@@ -3,30 +3,17 @@ import { PiggyBank, Settings, PlayCircle } from 'lucide-react';
 import CategoryCard from '../../components/cards/CategoryCard';
 import { EditBudgetStructureModal } from '../../components/modals/CategoryModals';
 import { Button } from '../../components/ui/Button';
+import { calculateSpentBySubCategory } from '../../utils/budgetSelectors';
+import { useBudget } from '../../context/BudgetContext';
 
-export default function BudgetView({
-  categories,
-  transactions,
-  sinkingFundBalances,
-  onCategoriesChange,
-  onOpenTransactionDetails,
-  onOpenAllTransactionsModal,
-  onFundSinkingFunds,
-  debts,
-  onOpenStartMonthModal,
-  theme = 'light' // Default to light if undefined to prevent crash, but allow prop to override
-}) {
+export default function BudgetView() {
+  const { currentMonthData, budgetData, theme, actions } = useBudget();
+  const { categories, transactions } = currentMonthData;
   const [isStructureModalOpen, setIsStructureModalOpen] = useState(false);
 
   // Calculate total spent for each sub-category
   const spentBySubCategory = useMemo(() => {
-    const spentMap = {};
-    transactions.forEach((tx) => {
-      if (tx.isIncome) return;
-      const amount = parseFloat(tx.amount) || 0;
-      spentMap[tx.subCategoryId] = (spentMap[tx.subCategoryId] || 0) + amount;
-    });
-    return spentMap;
+    return calculateSpentBySubCategory(transactions);
   }, [transactions]);
 
   return (
@@ -35,7 +22,7 @@ export default function BudgetView({
         isOpen={isStructureModalOpen}
         onClose={() => setIsStructureModalOpen(false)}
         categories={categories}
-        onCategoriesChange={onCategoriesChange}
+        onCategoriesChange={actions.onCategoriesChange}
         theme={theme}
       />
 
@@ -46,7 +33,7 @@ export default function BudgetView({
           {/* Left Side: Start Month Button */}
           <Button
             variant="primary"
-            onClick={onOpenStartMonthModal}
+            onClick={actions.openStartMonthModal}
             icon={<PlayCircle className="w-4 h-4" />}
             className="shadow-lg shadow-indigo-500/20 bg-indigo-600 hover:bg-indigo-700 text-white"
           >
@@ -57,7 +44,7 @@ export default function BudgetView({
           <div className="flex gap-3">
             <Button
               variant="outline"
-              onClick={onFundSinkingFunds}
+              onClick={actions.onFundSinkingFunds}
               icon={<PiggyBank className="w-4 h-4" />}
               className="bg-white/50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300"
             >
@@ -81,10 +68,7 @@ export default function BudgetView({
               key={category.id}
               category={category}
               spentBySubCategory={spentBySubCategory}
-              sinkingFundBalances={sinkingFundBalances}
-              debts={debts}
-              onOpenTransactionDetails={onOpenTransactionDetails}
-              theme={theme}
+              // sinkingFundBalances and debts are now consumed internally by CategoryCard
             />
           ))}
         </div>

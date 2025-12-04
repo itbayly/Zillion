@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { X, ArrowRight, Check } from 'lucide-react';
+import { nanoid } from 'nanoid';
 import { SUGGESTED_CATEGORIES } from '../../utils/constants';
 import { Button } from '../ui/Button';
 import { InputField } from '../ui/InputField';

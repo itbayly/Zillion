@@ -151,10 +151,33 @@ function RecurringDetailModal({ isOpen, onClose, item, isEditing, onSave, onDele
 }
 
 // --- MAIN WIDGET ---
-export default function RecurringTransactionsWidget({ recurringTransactions, onAdd, onUpdate, onDelete, categories, transactions, onSaveTransaction, bankAccounts, defaultAccountId, theme = 'light' }) {
+export default function RecurringTransactionsWidget({ recurringTransactions, onAdd, onUpdate, onDelete, categories, transactions, onSaveTransaction, handleUpdateRecurringField, bankAccounts, defaultAccountId, theme = 'light' }) {
   const [modalMode, setModalMode] = useState(null); 
   const [selectedItem, setSelectedItem] = useState(null);
-  const [payAmounts, setPayAmounts] = useState({}); 
+  
+  // Local state for inputs to prevent jitter, synced with props
+  const [localAmounts, setLocalAmounts] = useState({});
+
+  useEffect(() => {
+    if (recurringTransactions) {
+      const mapping = {};
+      recurringTransactions.forEach(item => {
+        if (item.isVariable) mapping[item.id] = item.pendingAmount || '';
+      });
+      setLocalAmounts(mapping);
+    }
+  }, [recurringTransactions]);
+
+  const handleAmountChange = (id, val) => {
+    setLocalAmounts(prev => ({ ...prev, [id]: val }));
+  };
+
+  const handleAmountBlur = (id) => {
+    // Save to persistent storage on blur
+    if (handleUpdateRecurringField) {
+      handleUpdateRecurringField(id, 'pendingAmount', parseFloat(localAmounts[id]) || 0);
+    }
+  };
 
   const getCatName = (subId) => {
     for (const c of categories) {
@@ -238,23 +261,17 @@ export default function RecurringTransactionsWidget({ recurringTransactions, onA
                                    <span className="text-xs text-slate-500 mr-1">$</span>
                                    <input 
                                       className="w-full bg-transparent text-xs outline-none font-mono"
-                                      placeholder="Amount"
+                                      placeholder="Set Amount"
                                       type="number"
-                                      value={payAmounts[item.id] || ''}
-                                      onChange={(e) => setPayAmounts({...payAmounts, [item.id]: e.target.value})}
+                                      value={localAmounts[item.id] || ''}
+                                      onChange={(e) => handleAmountChange(item.id, e.target.value)}
+                                      onBlur={() => handleAmountBlur(item.id)}
                                    />
                                 </div>
-                                <button 
-                                  onClick={() => handlePayVariable(item)}
-                                  disabled={!payAmounts[item.id]}
-                                  className={`h-9 w-9 flex-shrink-0 flex items-center justify-center rounded-lg border transition-all ${
-                                    !payAmounts[item.id] 
-                                      ? (theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-600 cursor-not-allowed' : 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed')
-                                      : (theme === 'dark' ? 'bg-zillion-500/20 border-zillion-500 text-zillion-400 hover:bg-zillion-500/30' : 'bg-zillion-50 border-zillion-200 text-zillion-600 hover:bg-zillion-100')
-                                  }`}
-                                >
-                                   <Check className="w-4 h-4" />
-                                </button>
+                                {/* Visual indicator that it's scheduled */}
+                                <div className="h-9 w-9 flex-shrink-0 flex items-center justify-center text-slate-400" title="Will pay automatically on due date">
+                                   <Clock className="w-4 h-4" />
+                                </div>
                               </div>
                            ) : (
                               <span className={`text-sm font-mono font-bold ${theme === 'dark' ? 'text-zillion-400' : 'text-zillion-600'}`}>

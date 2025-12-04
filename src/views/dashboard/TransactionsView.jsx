@@ -6,9 +6,11 @@ import { Button } from '../../components/ui/Button';
 import { InputField } from '../../components/ui/InputField';
 import EditTransactionModal from '../../components/modals/EditTransactionModal';
 import { ExportChoiceModal, BulkEditCategoryModal } from '../../components/modals/TransactionListModals';
+import ImportTransactionsModal from '../../components/modals/ImportTransactionsModal';
 import { ModalWrapper } from '../../components/ui/SharedUI';
+import { nanoid } from 'nanoid';
 
-// --- Date Filter Dropdown (Same as before) ---
+// --- Date Filter Dropdown ---
 const DateFilterDropdown = ({ allTransactions, dateFilter, onChange, theme }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -17,6 +19,8 @@ const DateFilterDropdown = ({ allTransactions, dateFilter, onChange, theme }) =>
   const { years, monthsByYear } = useMemo(() => {
     const map = {};
     const uniqueYears = new Set();
+    if (!allTransactions) return { years: [], monthsByYear: {} };
+
     allTransactions.forEach(tx => {
         const d = new Date(tx.date + 'T12:00:00');
         const y = d.getFullYear();
@@ -163,12 +167,45 @@ const CustomDateRangeModal = ({ isOpen, onClose, onApply, theme }) => {
     );
 };
 
+// --- MEMOIZED ROW COMPONENT ---
+const TransactionRow = React.memo(({ 
+  tx, 
+  isSelected, 
+  onToggleSelect, 
+  onEdit, 
+  categoryName, 
+  accountName, 
+  theme,
+  gridClass,
+  checkboxClass,
+  headerText,
+  subText 
+}) => {
+  return (
+    <div className={`${gridClass} border-b last:border-0 transition-colors cursor-pointer ${isSelected ? (theme === 'dark' ? 'bg-zillion-900/20' : 'bg-zillion-50') : (theme === 'dark' ? 'hover:bg-slate-800/30 border-slate-800' : 'hover:bg-slate-50 border-slate-100')}`} style={{ height: '57px' }} onClick={() => onEdit(tx)}>
+       <div onClick={(e) => e.stopPropagation()}><input type="checkbox" className={checkboxClass} checked={isSelected} onChange={() => onToggleSelect(tx.id)} /></div>
+       <div className={`text-sm ${headerText}`}>{tx.date}</div>
+       <div className={`text-sm font-medium truncate ${headerText}`}>{tx.merchant || 'Unknown'}</div>
+       <div className="truncate">
+          <div className={`text-sm ${headerText}`}>
+            {tx.isSplit ? <span className="italic text-slate-500">Split Transaction</span> : categoryName}
+          </div>
+          <div className={`text-xs ${subText}`}>{accountName}</div>
+       </div>
+       <div className={`text-sm font-bold font-mono text-right ${tx.isIncome ? 'text-zillion-500' : headerText}`}>{tx.isIncome ? '+' : ''}{formatCurrency(tx.amount)}</div>
+       <div className="text-right"><button onClick={(e) => { e.stopPropagation(); onEdit(tx); }} className={`p-1.5 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-slate-700 text-slate-400' : 'hover:bg-slate-200 text-slate-500'}`}><Edit3 className="h-4 w-4" /></button></div>
+    </div>
+  );
+});
+TransactionRow.displayName = 'TransactionRow';
+
 // --- MAIN COMPONENT ---
 export default function TransactionsView({
-  transactions: allTransactions,
+  transactions: allTransactions = [],
   categories,
   bankAccounts,
   onSaveTransaction,
+  onBulkSave,
   onDeleteTransaction,
   onReturnTransaction,
   onOpenTransactionModal,
@@ -178,6 +215,7 @@ export default function TransactionsView({
 }) {
   const [editingTransaction, setEditingTransaction] = useState(null);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isBulkEditModalOpen, setIsBulkEditModalOpen] = useState(false);
   
   // Filters
@@ -232,19 +270,52 @@ export default function TransactionsView({
     const lowerSearch = searchQuery.toLowerCase();
 
     let result = allTransactions.filter((tx) => {
+        // --- 1. Search Query ---
         if (searchQuery) {
           const merchantMatch = (tx.merchant || '').toLowerCase().includes(lowerSearch);
           const notesMatch = (tx.notes || '').toLowerCase().includes(lowerSearch);
-          const subCat = subCategoryMap.get(tx.subCategoryId);
-          const catMatch = (subCat?.name || '').toLowerCase().includes(lowerSearch);
+          
+          // Check main category OR any split category
+          let catMatch = false;
+          if (tx.isSplit && tx.splits) {
+             catMatch = tx.splits.some(split => {
+                const sub = subCategoryMap.get(split.subCategoryId);
+                return (sub?.name || '').toLowerCase().includes(lowerSearch);
+             });
+          } else {
+             const subCat = subCategoryMap.get(tx.subCategoryId);
+             catMatch = (subCat?.name || '').toLowerCase().includes(lowerSearch);
+          }
+
           if (!merchantMatch && !notesMatch && !catMatch) return false;
         }
+
+        // --- 2. Category Filter ---
         if (selectedCategories.length > 0) {
-          const subCat = subCategoryMap.get(tx.subCategoryId);
-          const parentCat = categories.find((c) => c.name === subCat?.catName);
-          if (!parentCat || !selectedCategories.includes(parentCat.id)) return false;
+          if (tx.isSplit && tx.splits) {
+             // Keep if ANY split belongs to a selected category
+             const hasMatch = tx.splits.some(split => {
+                const subCat = subCategoryMap.get(split.subCategoryId);
+                const parentCat = categories.find((c) => c.name === subCat?.catName);
+                return parentCat && selectedCategories.includes(parentCat.id);
+             });
+             if (!hasMatch) return false;
+          } else {
+             const subCat = subCategoryMap.get(tx.subCategoryId);
+             const parentCat = categories.find((c) => c.name === subCat?.catName);
+             if (!parentCat || !selectedCategories.includes(parentCat.id)) return false;
+          }
         }
-        if (selectedSubCategories.length > 0 && !selectedSubCategories.includes(tx.subCategoryId)) return false;
+
+        // --- 3. Sub-Category Filter ---
+        if (selectedSubCategories.length > 0) {
+            if (tx.isSplit && tx.splits) {
+                const hasMatch = tx.splits.some(split => selectedSubCategories.includes(split.subCategoryId));
+                if (!hasMatch) return false;
+            } else {
+                if (!selectedSubCategories.includes(tx.subCategoryId)) return false;
+            }
+        }
         if (priceVal > 0) {
           const amt = parseFloat(tx.amount) || 0;
           return priceFilterMode === 'gt' ? amt > priceVal : amt < priceVal;
@@ -260,6 +331,35 @@ export default function TransactionsView({
             return dateFilter.selection.has(key);
         }
     });
+
+    // --- ADJUST SPLIT AMOUNTS FOR FILTERS ---
+    if (selectedCategories.length > 0 || selectedSubCategories.length > 0) {
+      result = result.map(tx => {
+        if (tx.isSplit && tx.splits) {
+          const partialAmount = tx.splits.reduce((sum, split) => {
+            // 1. Check Category Match
+            let catMatch = true;
+            if (selectedCategories.length > 0) {
+               const subCat = subCategoryMap.get(split.subCategoryId);
+               const parentCat = categories.find(c => c.name === subCat?.catName);
+               if (!parentCat || !selectedCategories.includes(parentCat.id)) catMatch = false;
+            }
+            
+            // 2. Check Sub-Category Match
+            let subMatch = true;
+            if (selectedSubCategories.length > 0) {
+               if (!selectedSubCategories.includes(split.subCategoryId)) subMatch = false;
+            }
+
+            return (catMatch && subMatch) ? sum + (parseFloat(split.amount) || 0) : sum;
+          }, 0);
+          
+          // Return a copy with the adjusted amount for display
+          return { ...tx, amount: partialAmount };
+        }
+        return tx;
+      });
+    }
 
     // SORTING LOGIC
     result.sort((a, b) => {
@@ -282,6 +382,34 @@ export default function TransactionsView({
     exportTransactionsToCSV(filteredOnly ? filteredTransactions : allTransactions, subCategoryMap, accountMap, 'transactions-export');
     setIsExportModalOpen(false);
   };
+
+  const handleImport = (newTransactions, idsToDelete = []) => {
+     // 1. Handle Deletions (Replacements)
+     if (idsToDelete.length > 0 && onBulkDelete) {
+         onBulkDelete(idsToDelete);
+     }
+
+     // 2. Prepare all new transactions
+     const transactionsToSave = newTransactions.map(rawTx => ({
+        id: nanoid(),
+        date: rawTx.date || new Date().toISOString().split('T')[0],
+        amount: rawTx.amount,
+        merchant: rawTx.merchant || 'Unknown',
+        subCategoryId: rawTx.subCategoryId || '',
+        accountId: bankAccounts[0]?.id || '', // Default to first account
+        isIncome: rawTx.isIncome || false,
+        notes: rawTx.notes || 'Imported via CSV'
+     }));
+     
+     // 3. Save New
+     if (onBulkSave) {
+        onBulkSave(transactionsToSave);
+     } else {
+        transactionsToSave.forEach(tx => onSaveTransaction(tx));
+     }
+     setIsImportModalOpen(false);
+  };
+
   const handleSort = (key) => {
      setSortConfig(prev => ({ key, direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc' }));
   };
@@ -328,6 +456,14 @@ export default function TransactionsView({
     <div className="flex flex-col h-[calc(100vh-48px)]">
       <EditTransactionModal isOpen={!!editingTransaction} onClose={() => setEditingTransaction(null)} transaction={editingTransaction} categories={categories} bankAccounts={bankAccounts} onSave={onSaveTransaction} onDelete={onDeleteTransaction} onReturn={onReturnTransaction} theme={theme} />
       <ExportChoiceModal isOpen={isExportModalOpen} onClose={() => setIsExportModalOpen(false)} onExportFiltered={() => handleExport(true)} onExportAll={() => handleExport(false)} filterCount={filteredTransactions.length} totalCount={allTransactions.length} theme={theme} />
+      <ImportTransactionsModal 
+        isOpen={isImportModalOpen} 
+        onClose={() => setIsImportModalOpen(false)} 
+        existingTransactions={allTransactions} 
+        categories={categories} 
+        onSave={handleImport} 
+        theme={theme} 
+      />
       <CustomDateRangeModal 
          isOpen={dateFilter.modalOpen} 
          onClose={() => setDateFilter({...dateFilter, modalOpen: false})} 
@@ -345,8 +481,15 @@ export default function TransactionsView({
               <input type="text" placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="bg-transparent outline-none text-sm w-full placeholder-opacity-50" />
               {searchQuery && <button onClick={() => setSearchQuery('')}><X className="w-4 h-4 opacity-50 hover:opacity-100" /></button>}
            </div>
+           <Button variant="outline" onClick={() => setIsImportModalOpen(true)} icon={<FileDown className="w-4 h-4 rotate-180" />} className="h-[42px]">Import</Button>
            <Button variant="outline" onClick={() => setIsExportModalOpen(true)} icon={<FileDown className="w-4 h-4" />} className="h-[42px]">Export</Button>
-           <Button variant="primary" onClick={onOpenTransactionModal} className="w-[42px] h-[42px] px-0 flex items-center justify-center shadow-lg shadow-zillion-400/20 text-white"><Plus className="w-5 h-5" /></Button>
+           <button 
+             onClick={onOpenTransactionModal} 
+             className="flex items-center justify-center w-[42px] h-[42px] bg-zillion-400 hover:bg-zillion-500 text-white rounded-lg shadow-lg shadow-zillion-400/20 transition-all duration-300 transform active:scale-[0.98]"
+             title="Add Transaction"
+           >
+             <Plus className="w-6 h-6" strokeWidth={2} />
+           </button>
         </div>
       </div>
 
@@ -383,14 +526,20 @@ export default function TransactionsView({
               <div className="text-center py-20"><div className={`mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full ${theme === 'dark' ? 'bg-slate-800 text-slate-600' : 'bg-slate-100 text-slate-300'}`}><Filter className="h-8 w-8" /></div><p className={subText}>No transactions match.</p></div>
             ) : (
               filteredTransactions.map((tx) => (
-                <div key={tx.id} className={`${gridClass} border-b last:border-0 transition-colors ${selectedIds.has(tx.id) ? (theme === 'dark' ? 'bg-zillion-900/20' : 'bg-zillion-50') : (theme === 'dark' ? 'hover:bg-slate-800/30 border-slate-800' : 'hover:bg-slate-50 border-slate-100')}`}>
-                   <div><input type="checkbox" className={checkboxClass} checked={selectedIds.has(tx.id)} onChange={() => handleToggleSelect(tx.id)} /></div>
-                   <div className={`text-sm ${headerText}`}>{tx.date}</div>
-                   <div className={`text-sm font-medium truncate ${headerText}`}>{tx.merchant || 'Unknown'}</div>
-                   <div className="truncate"><div className={`text-sm ${headerText}`}>{subCategoryMap.get(tx.subCategoryId)?.name}</div><div className={`text-xs ${subText}`}>{accountMap.get(tx.accountId)}</div></div>
-                   <div className={`text-sm font-bold font-mono text-right ${tx.isIncome ? 'text-zillion-500' : headerText}`}>{tx.isIncome ? '+' : ''}{formatCurrency(tx.amount)}</div>
-                   <div className="text-right"><button onClick={() => setEditingTransaction(tx)} className={`p-1.5 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-slate-700 text-slate-400' : 'hover:bg-slate-200 text-slate-500'}`}><Edit3 className="h-4 w-4" /></button></div>
-                </div>
+                <TransactionRow
+                  key={tx.id}
+                  tx={tx}
+                  isSelected={selectedIds.has(tx.id)}
+                  onToggleSelect={handleToggleSelect}
+                  onEdit={setEditingTransaction}
+                  categoryName={subCategoryMap.get(tx.subCategoryId)?.name}
+                  accountName={accountMap.get(tx.accountId)}
+                  theme={theme}
+                  gridClass={gridClass}
+                  checkboxClass={checkboxClass}
+                  headerText={headerText}
+                  subText={subText}
+                />
               ))
             )}
          </div>

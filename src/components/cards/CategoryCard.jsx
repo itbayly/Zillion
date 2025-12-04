@@ -2,32 +2,21 @@ import React, { useState, useMemo } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { formatCurrency } from '../../utils/helpers';
 import { StatusPill } from '../ui/SharedUI';
+import { useBudget } from '../../context/BudgetContext';
+import { calculateCategoryTotals } from '../../utils/budgetSelectors';
 
-export default function CategoryCard({
+const CategoryCard = React.memo(({
   category,
   spentBySubCategory,
-  sinkingFundBalances,
-  debts,
-  onOpenTransactionDetails,
-  theme,
-}) {
+}) => {
+  const { budgetData, currentMonthData, theme, actions } = useBudget();
+  const { debts } = budgetData;
+  const { sinkingFundBalances } = currentMonthData;
+  
   const [isExpanded, setIsExpanded] = useState(false);
 
   const { totalBudgeted, totalSpent, remaining } = useMemo(() => {
-    let b = 0;
-    let s = 0;
-    category.subcategories.forEach((sub) => {
-      if (sub.type === 'deduction') return;
-      let subBudget = sub.budgeted || 0;
-      if (sub.linkedDebtId) {
-        const debt = debts.find((d) => d.id === sub.linkedDebtId);
-        if (debt)
-          subBudget = (debt.monthlyPayment || 0) + (debt.extraMonthlyPayment || 0);
-      }
-      b += subBudget;
-      s += spentBySubCategory[sub.id] || 0;
-    });
-    return { totalBudgeted: b, totalSpent: s, remaining: b - s };
+    return calculateCategoryTotals(category, spentBySubCategory, debts);
   }, [category, spentBySubCategory, debts]);
 
   const progressPercent = totalBudgeted > 0 ? (totalSpent / totalBudgeted) * 100 : 0;
@@ -129,7 +118,7 @@ export default function CategoryCard({
                 <div key={sub.id} className={`relative w-full border-t py-4 first:border-t-0 ${borderColor} ${isDeduction ? 'opacity-60' : ''}`}>
                   <button
                     className="absolute inset-0 z-10 w-full cursor-pointer opacity-0"
-                    onClick={() => !isDeduction && onOpenTransactionDetails({ type: 'subcategory', id: sub.id, name: sub.name })}
+                    onClick={() => !isDeduction && actions.openTransactionDetails({ type: 'subcategory', id: sub.id, name: sub.name })}
                     title={isDeduction ? "Deductions are automatic" : "View transactions"}
                   />
                   
@@ -171,4 +160,6 @@ export default function CategoryCard({
       )}
     </div>
   );
-}
+});
+
+export default CategoryCard;

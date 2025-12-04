@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Settings, EyeOff, Trash2, X, RotateCcw, Check } from 'lucide-react';
+import { Settings, EyeOff, RotateCcw, Check } from 'lucide-react';
 import { formatCurrency } from '../../utils/helpers';
 import { ModalWrapper } from '../ui/SharedUI';
 import { Button } from '../ui/Button';
@@ -47,7 +47,7 @@ function ManageExclusionsModal({ isOpen, onClose, excludedMerchants, onUpdateExc
 }
 
 // --- Top Merchants ---
-export function TopMerchantsCard({ transactions, excludedMerchants = [], onUpdateExclusions, theme = 'light', className = '' }) {
+export const TopMerchantsCard = React.memo(({ transactions, excludedMerchants = [], onUpdateExclusions, theme = 'light', className = '' }) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const topMerchants = useMemo(() => {
@@ -132,10 +132,11 @@ export function TopMerchantsCard({ transactions, excludedMerchants = [], onUpdat
       </div>
     </>
   );
-}
+});
+TopMerchantsCard.displayName = 'TopMerchantsCard';
 
 // --- Recent Activity ---
-export function RecentActivityCard({ transactions, categories, theme = 'light' }) {
+export const RecentActivityCard = React.memo(({ transactions, categories, theme = 'light' }) => {
   const recentTransactions = useMemo(() => {
     return [...transactions]
       .sort((a, b) => new Date(b.date) - new Date(a.date))
@@ -193,63 +194,64 @@ export function RecentActivityCard({ transactions, categories, theme = 'light' }
       </div>
     </div>
   );
-}
+});
+RecentActivityCard.displayName = 'RecentActivityCard';
 
-// --- Upcoming Bills ---
-export function UpcomingBillsCard({ debts, theme = 'light' }) {
-  const upcomingBills = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+// --- Upcoming Bills (Recurring Transactions View) ---
+export const UpcomingBillsCard = React.memo(({ recurringTransactions = [], categories = [], theme = 'light' }) => {
+  
+  const sortedItems = useMemo(() => {
+    return [...recurringTransactions].sort((a, b) => a.dayOfMonth - b.dayOfMonth);
+  }, [recurringTransactions]);
 
-    return debts
-      .filter((d) => d.paymentDueDate)
-      .map((d) => {
-        const dueDay = parseInt(d.paymentDueDate);
-        let nextDate = new Date(today.getFullYear(), today.getMonth(), dueDay);
-        if (nextDate < today) nextDate.setMonth(nextDate.getMonth() + 1);
-        const diffTime = nextDate - today;
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        return { ...d, nextDate, diffDays };
-      })
-      .sort((a, b) => a.diffDays - b.diffDays)
-      .slice(0, 5);
-  }, [debts]);
-
-  const getDueLabel = (diffDays, dateObj) => {
-    if (diffDays === 0) return { text: 'Due Today', color: 'text-yellow-500' };
-    if (diffDays === 1) return { text: 'Due Tomorrow', color: 'text-yellow-500' };
-    const color = theme === 'dark' ? 'text-slate-400' : 'text-slate-500';
-    if (diffDays <= 7) {
-      const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
-      return { text: `Due on ${dayName}`, color };
+  const getCatName = (subId) => {
+    for (const c of categories) {
+       const s = c.subcategories.find(sub => sub.id === subId);
+       if (s) return s.name;
     }
-    const dateStr = dateObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
-    return { text: `Due on ${dateStr}`, color };
+    return 'Unknown';
   };
 
   return (
-    <div className="glass-card h-[317px] w-full p-6">
-      <h3 className={`mb-6 text-xl font-bold ${theme === 'dark' ? 'text-slate-200' : 'text-slate-700'}`}>Upcoming Bills</h3>
-      <div className="flex flex-col gap-4">
-        {upcomingBills.length === 0 ? (
-          <p className={`text-sm ${theme === 'dark' ? 'text-slate-500' : 'text-slate-400'}`}>No upcoming bills found in Debts.</p>
+    <div className="glass-card h-[317px] w-full p-6 flex flex-col">
+      <h3 className={`mb-6 text-xl font-bold flex-shrink-0 ${theme === 'dark' ? 'text-slate-200' : 'text-slate-700'}`}>Upcoming Bills</h3>
+      
+      <div className="flex-grow overflow-y-auto space-y-3 pr-1 custom-scrollbar">
+        {sortedItems.length === 0 ? (
+          <p className={`text-sm ${theme === 'dark' ? 'text-slate-500' : 'text-slate-400'}`}>No recurring bills set up.</p>
         ) : (
-          upcomingBills.map((bill) => {
-            const { text, color } = getDueLabel(bill.diffDays, bill.nextDate);
-            return (
-              <div key={bill.id} className="flex items-start justify-between">
-                <div>
-                  <div className={`text-[14px] font-bold ${theme === 'dark' ? 'text-slate-200' : 'text-slate-800'}`}>{bill.name}</div>
-                  <div className={`mt-1 text-[12px] font-medium ${color}`}>{text}</div>
-                </div>
-                <div className={`text-[14px] font-bold ${theme === 'dark' ? 'text-slate-200' : 'text-slate-800'}`}>
-                  {formatCurrency(bill.monthlyPayment)}
-                </div>
-              </div>
-            );
-          })
+          sortedItems.map((item) => (
+            <div key={item.id} className={`flex items-center justify-between p-3 rounded-xl border transition-all gap-3 ${theme === 'dark' ? 'border-slate-800 bg-slate-800/20' : 'border-slate-100 bg-white/50'}`}>
+               
+               {/* Info Area */}
+               <div className="flex items-center gap-3 flex-grow min-w-0">
+                   <div className={`w-10 h-10 flex-shrink-0 rounded-lg flex flex-col items-center justify-center text-xs font-bold border ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-600'}`}>
+                       <span className="text-[9px] uppercase opacity-70">Day</span>
+                       <span>{item.dayOfMonth}</span>
+                   </div>
+                   <div className="min-w-0 flex-grow truncate">
+                       <p className={`text-sm font-bold truncate ${theme === 'dark' ? 'text-slate-200' : 'text-slate-800'}`}>{item.merchant}</p>
+                       <p className={`text-[10px] truncate ${theme === 'dark' ? 'text-slate-500' : 'text-slate-500'}`}>{getCatName(item.subCategoryId)}</p>
+                   </div>
+               </div>
+
+               {/* Amount */}
+               <div className="flex-shrink-0 text-right">
+                   {item.isVariable ? (
+                      <span className={`text-xs font-medium italic ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>
+                          {item.pendingAmount > 0 ? formatCurrency(item.pendingAmount) : 'Variable'}
+                      </span>
+                   ) : (
+                      <span className={`text-sm font-mono font-bold ${theme === 'dark' ? 'text-zillion-400' : 'text-zillion-600'}`}>
+                          {formatCurrency(item.amount)}
+                      </span>
+                   )}
+               </div>
+            </div>
+          ))
         )}
       </div>
     </div>
   );
-}
+});
+UpcomingBillsCard.displayName = 'UpcomingBillsCard';

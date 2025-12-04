@@ -166,6 +166,7 @@ export function CategoryBudgetList({
                                     )
                                   }
                                   disabled={!!sub.linkedDebtId}
+                                  commitOnBlur={true}
                                 />
                               </div>
                             </div>

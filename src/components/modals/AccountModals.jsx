@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, DollarSign } from 'lucide-react';
-import { GlassCurrencyInput } from '../ui/FormInputs'; // Correct import
-import { InputField } from '../ui/InputField';         // Correct import
+import { nanoid } from 'nanoid';
+import { GlassCurrencyInput } from '../ui/FormInputs'; 
+import { InputField } from '../ui/InputField';         
 import { Button } from '../ui/Button';
 import { ModalWrapper } from '../ui/SharedUI';
 
@@ -15,7 +16,7 @@ export function AccountForm({ onAddAccount, theme = 'light' }) {
     if (name.trim() === '') return;
 
     const newAccount = {
-      id: crypto.randomUUID(),
+      id: nanoid(),
       name: name.trim(),
       balance: parseFloat(balance) || 0,
     };
@@ -129,7 +130,7 @@ export function AddBankAccountModal({ isOpen, onClose, onAddAccount, theme = 'li
       return;
     }
     const newAccount = {
-      id: crypto.randomUUID(),
+      id: nanoid(),
       name: nickname.trim(),
       bankName: bankName.trim(),
       lastFour: lastFour.trim(),

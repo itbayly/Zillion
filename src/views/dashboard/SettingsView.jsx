@@ -7,6 +7,8 @@ import { UpdateProfileModal, ConfirmSignOutModal, ConfirmResetModal } from '../.
 import { ShareBudgetModal, InviteModal } from '../../components/modals/SharingModals';
 import { getDefaultBudgetData } from '../../utils/helpers';
 import { Button } from '../../components/ui/Button';
+import { migrateTransactionsToSubCollection } from '../../utils/dbMigration';
+import { Database } from 'lucide-react';
 
 export default function SettingsView({
   onSignOut,
@@ -66,6 +68,19 @@ export default function SettingsView({
       if (error.code === 'auth/wrong-password') errorText = 'Your current password was incorrect.';
       else if (error.code === 'auth/weak-password') errorText = 'Your new password is too weak.';
       setProfileMessage({ type: 'error', text: errorText });
+    }
+  };
+
+  const handleMigration = async () => {
+    if(!window.confirm("This will move all transactions to the new database structure. Continue?")) return;
+    
+    setSharingMessage({ type: '', text: 'Migrating data... do not close the app.' });
+    const result = await migrateTransactionsToSubCollection(effectiveBudgetId);
+    
+    if (result.success) {
+      setSharingMessage({ type: 'success', text: `Migration complete! Moved ${result.count} transactions.` });
+    } else {
+      setSharingMessage({ type: 'error', text: `Migration failed: ${result.error}` });
     }
   };
 
@@ -163,6 +178,12 @@ export default function SettingsView({
                 <UpdateBudgetCard icon={CreditCard} title="Update Debts" onClick={() => setActiveTab('debts')} />
                 <UpdateBudgetCard icon={ClipboardList} title="Update Categories" onClick={() => setActiveTab('budget')} />
               </div>
+              
+              <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-700">
+                 <h4 className="font-bold text-sm mb-2 text-slate-500">Maintenance</h4>
+                 <Button variant="outline" onClick={handleMigration} icon={<Database className="w-4 h-4" />}>Migrate to V2 Database</Button>
+              </div>
+
               <div className="mt-6 pt-6 border-t border-dashed border-red-300/50">
                 <h4 className="font-bold text-red-500 mb-2">Danger Zone</h4>
                 <Button variant="outline" onClick={() => setIsResetModalOpen(true)} icon={<RefreshCw className="w-4 h-4" />} className="border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-900/20">Fully Reset Budget</Button>

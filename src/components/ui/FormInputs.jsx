@@ -199,7 +199,7 @@ export function AssignmentInput({ value, onChange, onBlur }) {
 }
 
 // 5. Budget Input
-export function BudgetInput({ value, onChange, disabled = false }) {
+export function BudgetInput({ value, onChange, disabled = false, commitOnBlur = false }) {
   const [localValue, setLocalValue] = useState('');
 
   useEffect(() => {
@@ -219,7 +219,10 @@ export function BudgetInput({ value, onChange, disabled = false }) {
     const raw = e.target.value.replace(/,/g, '');
     if (/^\d*\.?\d*$/.test(raw)) {
       setLocalValue(formatNumberString(raw));
-      onChange(raw === '' ? 0 : parseFloat(raw)); 
+      // If NOT committing on blur, update parent immediately (standard behavior)
+      if (!commitOnBlur) {
+        onChange(raw === '' ? 0 : parseFloat(raw));
+      }
     }
   };
 
@@ -228,9 +231,19 @@ export function BudgetInput({ value, onChange, disabled = false }) {
   const handleBlur = () => {
     const raw = localValue.replace(/,/g, '');
     const num = parseFloat(raw);
+    
+    // Formatting logic
     if (num && !isNaN(num)) {
        const formatted = num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
        setLocalValue(formatted);
+    }
+
+    // Commit logic (if buffering is enabled)
+    if (commitOnBlur) {
+       const finalVal = raw === '' ? 0 : parseFloat(raw);
+       if (finalVal !== value) {
+         onChange(finalVal);
+       }
     }
   };
 
@@ -255,7 +268,7 @@ export function BudgetInput({ value, onChange, disabled = false }) {
 }
 
 // 6. Glass Currency Input (New Design System)
-export function GlassCurrencyInput({ value, onChange, placeholder = '0.00', id, disabled = false, autoFocus = false, theme = 'light', label }) {
+export function GlassCurrencyInput({ value, onChange, placeholder = '0.00', id, disabled = false, autoFocus = false, theme = 'light', label, commitOnBlur = false }) {
   const [localValue, setLocalValue] = useState('');
   const [isFocused, setIsFocused] = useState(false);
 
@@ -271,12 +284,28 @@ export function GlassCurrencyInput({ value, onChange, placeholder = '0.00', id, 
     const raw = e.target.value.replace(/,/g, '');
     if (/^\d*\.?\d*$/.test(raw)) {
       setLocalValue(formatNumberString(raw));
-      onChange(raw);
+      if (!commitOnBlur) {
+        onChange(raw);
+      }
     }
   };
 
   const handleBlur = () => {
     setIsFocused(false);
+    
+    // Commit logic
+    if (commitOnBlur) {
+        const raw = localValue.replace(/,/g, '');
+        // GlassInput typically expects string or number depending on usage, 
+        // but ReportsView expects number. Modals expect string.
+        // We will emit the raw string to match previous behavior, consumer handles parsing if needed.
+        // OR if previous behavior was forwarding raw string 'onChange', we do same here.
+        if (raw !== value?.toString()) {
+            onChange(raw);
+        }
+    }
+
+    // Formatting
     if (localValue) {
       const formatted = formatCurrencyOnBlur(localValue);
       setLocalValue(formatted);

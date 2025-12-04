@@ -1,6 +1,7 @@
 import React from 'react';
 import { Plus, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import { formatCurrency } from '../../utils/helpers';
+import { calculateTotalIncome, calculateTotalSpent, calculateTotalBudgeted, calculateSafeToSpend } from '../../utils/budgetSelectors';
 import { Button } from '../ui/Button';
 
 export function HeaderBar({ 
@@ -83,20 +84,12 @@ export function HeaderBar({
   );
 }
 
-export function HeroBar({ categories, transactions, income, savingsGoal, theme }) {
-  // Calculate Totals
-  const totalIncome = (income?.source1 || 0) + (income?.source2 || 0);
-  
-  const totalSpent = transactions.reduce((sum, tx) => {
-    const amt = parseFloat(tx.amount) || 0;
-    return tx.isIncome ? sum : sum + amt;
-  }, 0);
-
-  const totalBudgeted = categories.reduce((acc, cat) => {
-    return acc + cat.subcategories.reduce((subAcc, sub) => subAcc + (sub.budgeted || 0), 0);
-  }, 0);
-
-  const remaining = totalIncome - totalSpent - (savingsGoal || 0);
+export function HeroBar({ categories, transactions, income, savingsGoal, debts, theme }) {
+  // Use Selectors
+  const totalIncome = calculateTotalIncome(income);
+  const totalSpent = calculateTotalSpent(transactions);
+  const totalBudgeted = calculateTotalBudgeted(categories, debts);
+  const remaining = calculateSafeToSpend(income, transactions, savingsGoal);
 
   const cardClass = "glass-card p-5";
   const labelClass = "text-label";

@@ -14,6 +14,7 @@ import {
 } from 'recharts';
 import { formatCurrency } from '../../utils/helpers';
 import { GlassCurrencyInput } from '../../components/ui/FormInputs';
+import { calculateTotalIncome, calculateTotalSpent, calculateTotalBudgeted, calculateSpendingByCategory } from '../../utils/budgetSelectors';
 
 export default function ReportsDashboard({
   categories,
@@ -51,41 +52,13 @@ export default function ReportsDashboard({
     onSavingsChange(numericValue);
   };
 
-  const subCategoryToCategoryMap = useMemo(() => {
-    const map = {};
-    categories.forEach((cat) => {
-      cat.subcategories.forEach((sub) => {
-        map[sub.id] = cat.name;
-      });
-    });
-    return map;
-  }, [categories]);
-
   const spendingByCategory = useMemo(() => {
-    if (transactions.length === 0) return [];
-    const categoryTotals = {};
-    transactions.forEach((tx) => {
-      if (tx.isIncome) return;
-      const categoryName = subCategoryToCategoryMap[tx.subCategoryId];
-      if (categoryName) {
-        const amount = parseFloat(tx.amount) || 0;
-        categoryTotals[categoryName] = (categoryTotals[categoryName] || 0) + amount;
-      }
-    });
-    return Object.keys(categoryTotals)
-      .map((name) => ({ name, value: categoryTotals[name] }))
-      .filter((c) => c.value > 0);
-  }, [transactions, subCategoryToCategoryMap]);
+    return calculateSpendingByCategory(transactions, categories);
+  }, [transactions, categories]);
 
-  const totalIncome = (income.source1 || 0) + (income.source2 || 0);
-  const totalSpent = transactions.reduce((sum, tx) => {
-    const amount = parseFloat(tx.amount) || 0;
-    return tx.isIncome ? sum - amount : sum + amount;
-  }, 0);
-  const totalBudgeted = categories.reduce(
-    (catSum, cat) => catSum + cat.subcategories.reduce((subSum, sub) => subSum + (sub.budgeted || 0), 0),
-    0
-  );
+  const totalIncome = calculateTotalIncome(income);
+  const totalSpent = calculateTotalSpent(transactions);
+  const totalBudgeted = calculateTotalBudgeted(categories, debts);
 
   const barChartData = [
     { name: 'Income', value: totalIncome },
@@ -110,21 +83,24 @@ export default function ReportsDashboard({
             value={income1} 
             onChange={(val) => handleIncomeChangeInternal('source1', val)} 
             placeholder="0.00" 
-            theme={theme} 
+            theme={theme}
+            commitOnBlur={true}
           />
           <GlassCurrencyInput 
             label="Partner's Income" 
             value={income2} 
             onChange={(val) => handleIncomeChangeInternal('source2', val)} 
             placeholder="0.00" 
-            theme={theme} 
+            theme={theme}
+            commitOnBlur={true}
           />
           <GlassCurrencyInput 
             label="Monthly Savings Goal" 
             value={goal} 
             onChange={handleSavingsChangeInternal} 
             placeholder="0.00" 
-            theme={theme} 
+            theme={theme}
+            commitOnBlur={true}
           />
         </div>
       </div>

@@ -5,6 +5,8 @@ import { AddFromSuggestionsModal, CreateCustomCategoryModal, AddSubCategoryModal
 import { AssignRemainingModal } from '../../components/modals/BudgetAdjustmentModals';
 import { Button } from '../../components/ui/Button';
 import { InputField } from '../../components/ui/InputField';
+import { BudgetInput } from '../../components/ui/FormInputs';
+import { nanoid } from 'nanoid';
 import { AmbientBackground } from '../../components/ui/SharedUI';
 import { ThemeToggle } from '../../components/ui/ThemeToggle';
 
@@ -17,7 +19,7 @@ export function WizardStep4_Categories({ categories, onCategoriesChange, onNext,
 
   const handleAddCustomCategory = (name) => {
     if (name.trim() === '') return;
-    onCategoriesChange([...categories, { id: crypto.randomUUID(), name: name.trim(), subcategories: [] }]);
+    onCategoriesChange([...categories, { id: nanoid(), name: name.trim(), subcategories: [] }]);
     setIsCustomCatOpen(false);
   };
 
@@ -26,7 +28,7 @@ export function WizardStep4_Categories({ categories, onCategoriesChange, onNext,
   const handleAddCustomSubCategory = (name, type) => {
     if (name.trim() === '' || !currentCatId) return;
     const newCategories = categories.map(cat => {
-      if (cat.id === currentCatId) return { ...cat, subcategories: [...cat.subcategories, { id: crypto.randomUUID(), name: name.trim(), type: type, budgeted: 0, linkedDebtId: null }] };
+      if (cat.id === currentCatId) return { ...cat, subcategories: [...cat.subcategories, { id: nanoid(), name: name.trim(), type: type, budgeted: 0, linkedDebtId: null }] };
       return cat;
     });
     onCategoriesChange(newCategories); setIsCustomSubOpen(false); setCurrentCatId(null);
@@ -44,9 +46,9 @@ export function WizardStep4_Categories({ categories, onCategoriesChange, onNext,
     const newStructure = [...categories];
     selectedItems.forEach((selectedSub) => {
       let targetCat = newStructure.find(cat => cat.name.toLowerCase() === selectedSub.originalCatName.toLowerCase());
-      if (!targetCat) { targetCat = { id: crypto.randomUUID(), name: selectedSub.originalCatName, subcategories: [] }; newStructure.push(targetCat); }
+      if (!targetCat) { targetCat = { id: nanoid(), name: selectedSub.originalCatName, subcategories: [] }; newStructure.push(targetCat); }
       const subExists = targetCat.subcategories.some(sub => sub.name.toLowerCase() === selectedSub.name.toLowerCase());
-      if (!subExists) targetCat.subcategories.push({ id: crypto.randomUUID(), name: selectedSub.name, type: selectedSub.type, budgeted: 0, linkedDebtId: null });
+      if (!subExists) targetCat.subcategories.push({ id: nanoid(), name: selectedSub.name, type: selectedSub.type, budgeted: 0, linkedDebtId: null });
     });
     onCategoriesChange(newStructure); setIsSuggestionsOpen(false);
   };
@@ -138,7 +140,7 @@ export function WizardStep_LinkDebts({ categories, debts, onCategoriesChange, on
   const handleCreateAndLink = (debtId, categoryId) => {
     const debt = debts.find((d) => d.id === debtId);
     if (!debt || !categoryId) return;
-    const newSubCategory = { id: crypto.randomUUID(), name: debt.name, type: 'expense', budgeted: debt.monthlyPayment, linkedDebtId: debt.id };
+    const newSubCategory = { id: nanoid(), name: debt.name, type: 'expense', budgeted: debt.monthlyPayment, linkedDebtId: debt.id };
     const newCategories = categories.map((cat) => cat.id === categoryId ? { ...cat, subcategories: [...cat.subcategories, newSubCategory] } : cat);
     onCategoriesChange(newCategories);
   };
@@ -338,15 +340,12 @@ export function WizardStep5_AssignBudgets({ categories, remainingToBudget, onCat
                               </div>
                               <span className={`text-[9px] uppercase px-1 rounded ${sub.type === 'expense' ? 'bg-blue-50 text-blue-600' : 'bg-green-50 text-green-600'}`}>{sub.type === 'expense' ? 'Expense' : 'Sinking Fund'} {isLinked && '• Linked to Debt'}</span>
                            </div>
-                           <div className="flex items-center gap-2">
-                              <span className="text-slate-400 text-xs">$</span>
-                              <input 
-                                type="number" 
-                                className={`w-24 text-right p-1 rounded border bg-transparent outline-none focus:border-zillion-400 ${theme === 'dark' ? 'border-slate-600 text-white' : 'border-slate-300 text-slate-800'}`} 
-                                placeholder="0.00"
+                           <div className="w-28">
+                              <BudgetInput 
                                 value={budgetValue}
-                                onChange={(e) => !isLinked && handleBudgetChange(cat.id, sub.id, parseFloat(e.target.value) || 0)}
+                                onChange={(val) => !isLinked && handleBudgetChange(cat.id, sub.id, val)}
                                 disabled={isLinked}
+                                commitOnBlur={true}
                               />
                            </div>
                        </div>

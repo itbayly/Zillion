@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Split, Plus, Trash2 } from 'lucide-react';
+import { nanoid } from 'nanoid';
 import { getTodayDate, formatCurrency } from '../../utils/helpers';
 import { GlassCurrencyInput } from '../ui/FormInputs'; 
 import { InputField } from '../ui/InputField';
@@ -30,9 +31,10 @@ export default function AddTransactionModal({
   const [subCategoryId, setSubCategoryId] = useState('');
   const [amountError, setAmountError] = useState('');
 
+  // Initialize with nanoid() instead of crypto.randomUUID()
   const [splits, setSplits] = useState([
     {
-      id: crypto.randomUUID(),
+      id: nanoid(),
       subCategoryId: '',
       amount: '',
       accountId: '',
@@ -76,7 +78,7 @@ export default function AddTransactionModal({
       setSubCategoryId('');
       setSelectedCategoryId('');
       setSplits([{
-        id: crypto.randomUUID(),
+        id: nanoid(),
         subCategoryId: '',
         amount: '',
         accountId: defaultAccountId || (bankAccounts.length > 0 ? bankAccounts[0].id : ''),
@@ -138,7 +140,7 @@ export default function AddTransactionModal({
 
   const addSplit = () => {
     setSplits([...splits, {
-      id: crypto.randomUUID(),
+      id: nanoid(),
       subCategoryId: '',
       amount: '',
       accountId: defaultAccountId || (bankAccounts.length > 0 ? bankAccounts[0].id : ''),
@@ -173,7 +175,7 @@ export default function AddTransactionModal({
 
     if (isSplit) {
       transactionToSave = {
-        id: crypto.randomUUID(),
+        id: nanoid(),
         amount: totalAmount,
         date,
         notes,
@@ -189,6 +191,7 @@ export default function AddTransactionModal({
       };
     } else {
       transactionToSave = {
+        id: nanoid(), // Ensure ID is generated here if not editing
         amount: totalAmount,
         date,
         subCategoryId,
